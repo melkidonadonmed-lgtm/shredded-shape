@@ -1,51 +1,38 @@
 {
   "skill_name": "complex-zero",
-  "version": "3.1.0",
   "evals": [
     {
-      "eval_id": "ACT-01-dashboard-container-queries-oklch",
-      "prompt": "Analise meu dashboard e veja por que os cards quebram na barra lateral e o foco do teclado some.",
+      "id": "ACT-01",
+      "prompt": "Audit this dense multi-tab @xyflow/react infinite canvas and 150ms WebSocket chokidar telemetry dashboard using ReAct CDP DevTools and AST checks.",
       "should_trigger": true,
-      "expected_assertions": [
-        "Inspects Axes 1 and 2 replacing @media inside cards with container-type: inline-size and @container",
-        "Restores accessible focus ring via :focus-visible with oklch() outline and enforces >= 48x48px targets under @media (any-pointer: coarse)",
-        "Applies font-variant-numeric: tabular-nums on numeric indicators and removes UI emojis"
+      "assertions": [
+        "Runs complex_zero_ast_auditor.py and ReAct CDP probe over @xyflow/react nodes and 150ms WebSocket batching",
+        "Enforces memoized nodes, clean SVG icons, stable JS heap, and text-rendering: auto"
       ]
     },
     {
-      "eval_id": "ACT-02-xyflow-websocket-chokidar-batch-150ms",
-      "prompt": "Build a real-time @xyflow/react file dependency graph with 150ms WebSocket + chokidar updates and verify there are no ghost nodes, Math.random() telemetry, or synchronous Next.js 15 params.slug.",
+      "id": "ACT-02",
+      "prompt": "Inspect a Next.js 15 telemetry app for unawaited route params, ghost node imports, fake setTimeout stubs, and React Rules of Hooks violations.",
       "should_trigger": true,
-      "expected_assertions": [
-        "Uses modern @xyflow/react with CustomMetricNode isolating clicks via className='nodrag nopan' and e.stopPropagation()",
-        "Implements WebSocket + chokidar server with 150ms BATCH_UPDATE batching and real Event Loop telemetry (monitorEventLoopDelay and process.memoryUsage)",
-        "Runs complex_zero_ast_auditor.py to reject Ghost Nodes, empty {} handlers, Math.random() telemetry, hardcoded '[PASS]' badges, and sync params.slug in Next.js 15+"
+      "assertions": [
+        "Catches sync params.id access and Ghost Nodes confined inside target root",
+        "Requires await params or use(params) plus real FSM without fake stubs"
       ]
     },
     {
-      "eval_id": "ACT-03-visual-hierarchy-cramped-menus-and-anti-tab-sprawl",
-      "prompt": "Minha interface está uma bagunça: a aba principal está quebrada, criaram abas repetidas com a mesma função e abas expondo filas internas do backend, além de menus compactados (11px/12px) e várias entradas de chat.",
-      "should_trigger": true,
-      "expected_assertions": [
-        "Runs complex_zero_ast_auditor.py integrated with system-project-auditor rejecting CRAMPED_MENU_OR_BAD_TYPOGRAPHY (font-size < 13px, gap < 6px, min-block-size < 40px) and VISUAL_HIERARCHY_FLATNESS",
-        "Cleans the primary tab, merges duplicate-function tabs, removes backend plumbing tabs, forbids nested sub-tabs, and unifies competing chat inputs into 1 Composer",
-        "Executes Chrome DevTools MCP take_screenshot + take_snapshot + evaluate_script (--dump-cdp-script) to validate live rendered hierarchy"
-      ]
-    },
-    {
-      "eval_id": "ACT-04-negative-simple-static-design-md",
-      "prompt": "Write a DESIGN.md file for a simple static marketing landing page with OKLCH palette tokens and typography scale.",
+      "id": "ACT-03",
+      "prompt": "Design a brand color palette and static 3-section marketing brochure page for a local bakery in HTML5.",
       "should_trigger": false,
-      "expected_assertions": [
-        "Does not trigger complex-zero for authoring DESIGN.md on simple static pages; routes to ui-brand-ux-planner"
+      "assertions": [
+        "Does not trigger complex-zero on simple static marketing websites"
       ]
     },
     {
-      "eval_id": "ACT-05-negative-clinical-ehr-a4",
-      "prompt": "Projete um prontuário eletrônico PEP e receituário de impressão vetorial A4 .sus-grid com calculadora de clearance de creatinina.",
+      "id": "ACT-04",
+      "prompt": "Write a PostgreSQL migration script and FastAPI Pydantic endpoint for backend invoice billing.",
       "should_trigger": false,
-      "expected_assertions": [
-        "Does not trigger complex-zero for clinical EHR/PEP interfaces and vector A4 print sheets; routes to clinical-minimalist-ui"
+      "assertions": [
+        "Skips frontend/canvas audit skills for pure backend database work"
       ]
     }
   ]

@@ -2,8 +2,8 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "shredded-shape",
   "displayName": "Shredded-Shape UI/UX Architecture & Actor-Critic Suite",
-  "version": "1.0.0",
-  "description": "Dedicated UI/UX skill and subagent suite: DevTools forensic analysis, AI Slop detection, brand/style planning (Stitch, Figma, Fonts, 3D), clean optical implementation, and WCAG 2.2 OKLCH Actor-Critic judging.",
+  "version": "1.4.0",
+  "description": "Dedicated UI/UX skill and subagent suite: DevTools & web-guidance forensic analysis, 12-vector Anti-AI-Slop gates, brand & Lucide/Material asset planning, clean optical implementation, and WCAG 2.2 OKLab Actor-Critic judging.",
   "author": {
     "name": "Melki Franklin",
     "url": "https://github.com/melkidonadonmed-lgtm"

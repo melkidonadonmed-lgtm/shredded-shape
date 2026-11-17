@@ -1,1156 +1,492 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark" data-style="tactile" data-sidebar="expanded">
+<html lang="pt-BR" data-theme="tactile-matte" data-style="tactile">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light dark">
-  <title>Shredded-Shape — Atlas Arquitetural de Skills UI/UX</title>
-  <script>
-    (function () {
-      try {
-        var saved = localStorage.getItem('ss-atlas-theme');
-        var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-        document.documentElement.setAttribute('data-theme', theme);
-      } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      }
-    })();
-  </script>
-  <style>
-    @layer reset, tokens, layout, components, styles, motion;
-
-    @layer reset {
-      *, *::before, *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      html, body {
-        min-block-size: 100dvh;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: optimizeLegibility;
-        font-synthesis: none;
-        font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-      }
-      ul, ol { list-style: none; }
-      button, input { font: inherit; color: inherit; }
-      button { cursor: pointer; background: none; border: none; }
-    }
-
-    @layer tokens {
-      :root {
-        color-scheme: light dark;
-
-        /* Layer 1: Primitives */
-        --space-1: 0.25rem;
-        --space-2: 0.5rem;
-        --space-3: 0.75rem;
-        --space-4: 1rem;
-        --space-6: 1.5rem;
-        --space-8: 2rem;
-
-        --radius-sm: 0.5rem;
-        --radius-md: 0.75rem;
-        --radius-card: 1rem;
-        --radius-pill: 9999px;
-
-        --step--1: clamp(0.8125rem, 0.79rem + 0.12vw, 0.875rem);
-        --step-0: clamp(0.9375rem, 0.9rem + 0.2vw, 1.0625rem);
-        --step-1: clamp(1.125rem, 1.02rem + 0.5vw, 1.375rem);
-        --step-2: clamp(1.5rem, 1.25rem + 1vw, 2.125rem);
-
-        --ease-natural: cubic-bezier(0.22, 1, 0.36, 1);
-        --ease-fast: cubic-bezier(0.4, 0, 0.2, 1);
-        --font-mono: 'JetBrains Mono', 'Cascadia Code', ui-monospace, monospace;
-
-        /* Layer 2: 60-30-10 OKLCH Semantics (Restrained Chroma <= 0.17, Zero Neon, Zero Pure Black) */
-        --brand-primary: light-dark(oklch(0.52 0.15 245), oklch(0.68 0.14 235));
-        --brand-accent: light-dark(oklch(0.54 0.13 165), oklch(0.70 0.12 165));
-        --status-warn: light-dark(oklch(0.60 0.14 70), oklch(0.76 0.13 75));
-        --status-danger: light-dark(oklch(0.55 0.16 25), oklch(0.68 0.15 25));
-
-        --surface-canvas: light-dark(oklch(0.975 0.005 250), oklch(0.16 0.018 258));
-        --surface-sunken: light-dark(oklch(0.945 0.008 250), oklch(0.13 0.016 258));
-        --surface-card: light-dark(oklch(1 0 0), oklch(0.215 0.022 258));
-        --surface-elevated: light-dark(oklch(0.99 0.004 250), oklch(0.265 0.026 258));
-        --surface-glass: oklch(from var(--surface-card) l c h / 0.74);
-
-        --bg-canvas: var(--surface-canvas);
-        --bg-surface-1: var(--surface-card);
-        --bg-surface-2: var(--surface-elevated);
-
-        --ink-primary: light-dark(oklch(0.20 0.02 255), oklch(0.95 0.01 255));
-        --ink-secondary: light-dark(oklch(0.42 0.025 255), oklch(0.78 0.018 255));
-        --ink-muted: light-dark(oklch(0.50 0.02 255), oklch(0.66 0.016 255));
-        --border-subtle: light-dark(oklch(0.25 0.02 255 / 0.10), oklch(1 0 0 / 0.11));
-        --catch-light: inset 0px 1px 0px 0px light-dark(oklch(1 0 0 / 0.88), oklch(1 0 0 / 0.14));
-
-        /* Polarity-Aware Optical Depth:
-           Light -> 3-layer box-shadow (Contact Umbra + Negative-Spread Penumbra + Catch-Light)
-           Dark  -> Rim Specular Edge + Subtle Non-Neon Ambient Halo + Progressive Lightness L */
-        --shadow-layer-sm:
-          0px 1px 2px 0px light-dark(oklch(0.20 0.03 255 / 0.06), oklch(0.08 0.02 258 / 0.45)),
-          0px 3px 8px -2px light-dark(oklch(0.20 0.03 255 / 0.06), oklch(0.08 0.02 258 / 0.35)),
-          var(--catch-light);
-        --shadow-layer-md:
-          0px 2px 4px -1px light-dark(oklch(0.20 0.03 255 / 0.07), oklch(0.08 0.02 258 / 0.50)),
-          0px 10px 20px -4px light-dark(oklch(0.20 0.03 255 / 0.08), oklch(from var(--brand-primary) l c h / 0.12)),
-          0px 0px 0px 1px var(--border-subtle),
-          var(--catch-light);
-        --shadow-layer-lg:
-          0px 4px 8px -2px light-dark(oklch(0.20 0.03 255 / 0.08), oklch(0.08 0.02 258 / 0.55)),
-          0px 18px 34px -6px light-dark(oklch(0.20 0.03 255 / 0.11), oklch(from var(--brand-primary) l c h / 0.16)),
-          var(--catch-light);
-        --shadow-elevation-1: var(--shadow-layer-sm);
-        --shadow-elevation-2: var(--shadow-layer-md);
-        --shadow-elevation-3: var(--shadow-layer-lg);
-        --shadow-inset:
-          inset 0px 2px 4px 0px light-dark(oklch(0.18 0.02 255 / 0.09), oklch(0.08 0.02 258 / 0.55)),
-          inset 0px 0px 0px 1px var(--border-subtle);
-
-        --space-card-padding: clamp(1rem, 2.5cqi, 1.5rem);
-        --space-grid-gap: clamp(0.875rem, 2vw, 1.25rem);
-        --sidebar-width: 256px;
-      }
-
-      :root[data-theme="light"] { color-scheme: light; }
-      :root[data-theme="dark"] { color-scheme: dark; }
-      :root[data-sidebar="collapsed"] { --sidebar-width: 72px; }
-    }
-
-    @layer layout {
-      body {
-        background-color: var(--surface-canvas);
-        color: var(--ink-primary);
-        font-size: var(--step-0);
-        line-height: 1.55;
-      }
-
-      .skip-link {
-        position: fixed;
-        inset-block-start: -100px;
-        inset-inline-start: var(--space-4);
-        z-index: 100;
-        padding: var(--space-2) var(--space-4);
-        border-radius: var(--radius-md);
-        background: var(--brand-primary);
-        color: oklch(0.99 0 0);
-        text-decoration: none;
-        font-weight: 600;
-      }
-      .skip-link:focus-visible { inset-block-start: var(--space-4); }
-
-      .app-shell {
-        display: grid;
-        grid-template-columns: 1fr;
-        min-block-size: 100dvh;
-      }
-
-      .adaptive-nav {
-        position: fixed;
-        inset-block-end: 0;
-        inset-inline: 0;
-        z-index: 40;
-        display: flex;
-        align-items: center;
-        justify-content: space-around;
-        gap: var(--space-1);
-        padding-block: var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
-        padding-inline: var(--space-2);
-        background: var(--surface-glass);
-        backdrop-filter: blur(20px) saturate(145%);
-        border-block-start: 1px solid var(--border-subtle);
-        box-shadow: var(--shadow-elevation-2);
-        isolation: isolate;
-      }
-
-      .nav-brand, .sidebar-toggle, .nav-section-label { display: none; }
-
-      .nav-list {
-        display: flex;
-        inline-size: 100%;
-        justify-content: space-around;
-        gap: var(--space-1);
-      }
-
-      .nav-btn {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 0.25rem;
-        min-inline-size: 48px;
-        min-block-size: 48px;
-        padding: var(--space-1) var(--space-3);
-        border-radius: var(--radius-md);
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: var(--ink-secondary);
-        transition: background-color 0.18s var(--ease-fast), color 0.18s var(--ease-fast);
-      }
-      .nav-btn[aria-current="page"] {
-        background: oklch(from var(--brand-primary) l c h / 0.14);
-        color: var(--brand-primary);
-        box-shadow: inset 0 -2px 0 0 var(--brand-primary);
-      }
-
-      @media (min-width: 48em) {
-        .app-shell {
-          grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-          transition: grid-template-columns 0.22s var(--ease-natural);
-        }
-        .adaptive-nav {
-          position: sticky;
-          inset-block-start: 0;
-          block-size: 100dvh;
-          flex-direction: column;
-          justify-content: flex-start;
-          align-items: stretch;
-          padding: var(--space-4) var(--space-3);
-          border-block-start: none;
-          border-inline-end: 1px solid var(--border-subtle);
-          gap: var(--space-4);
-        }
-        .nav-brand, .sidebar-toggle, .nav-section-label { display: flex; }
-        .nav-brand {
-          align-items: center;
-          justify-content: space-between;
-          gap: var(--space-2);
-          padding-inline: var(--space-2);
-        }
-        .brand-mark {
-          display: inline-flex;
-          align-items: center;
-          gap: var(--space-2);
-          min-inline-size: 0;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-        }
-        .nav-list {
-          flex-direction: column;
-          gap: var(--space-2);
-        }
-        .nav-btn {
-          flex-direction: row;
-          justify-content: flex-start;
-          gap: var(--space-3);
-          inline-size: 100%;
-          min-block-size: 44px;
-          padding-inline: var(--space-3);
-          font-size: var(--step--1);
-        }
-        .nav-btn[aria-current="page"] {
-          box-shadow: inset 3px 0 0 0 var(--brand-primary), var(--catch-light);
-        }
-        :root[data-sidebar="collapsed"] .nav-label,
-        :root[data-sidebar="collapsed"] .brand-text,
-        :root[data-sidebar="collapsed"] .nav-footer-meta {
-          display: none;
-        }
-        :root[data-sidebar="collapsed"] .nav-btn { justify-content: center; padding-inline: var(--space-2); }
-      }
-
-      .main-area {
-        display: flex;
-        flex-direction: column;
-        min-inline-size: 0;
-        padding-block-end: 5rem;
-      }
-      @media (min-width: 48em) { .main-area { padding-block-end: var(--space-8); } }
-
-      .frosted-topbar {
-        position: sticky;
-        inset-block-start: 0;
-        z-index: 30;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--space-3);
-        padding: var(--space-3) clamp(1rem, 3vw, 2rem);
-        background: var(--surface-glass);
-        backdrop-filter: blur(20px) saturate(145%);
-        border-block-end: 1px solid var(--border-subtle);
-        box-shadow: var(--catch-light);
-        isolation: isolate;
-      }
-
-      .content-wrap {
-        display: flow-root;
-        inline-size: min(100%, 1380px);
-        margin-inline: auto;
-        padding: var(--space-6) clamp(1rem, 3vw, 2rem);
-      }
-
-      .metrics-ram {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-        gap: var(--space-grid-gap);
-        margin-block-end: var(--space-6);
-      }
-
-      .split-workbench {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: var(--space-6);
-        align-items: start;
-      }
-      @media (min-width: 66em) {
-        .split-workbench { grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr); }
-      }
-    }
-
-    @layer components {
-      .breadcrumbs ol {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: var(--space-2);
-        font-size: var(--step--1);
-        color: var(--ink-muted);
-      }
-      .breadcrumbs li + li::before {
-        content: "/";
-        margin-inline-end: var(--space-2);
-        color: var(--ink-muted);
-        pointer-events: none;
-      }
-      .breadcrumbs [aria-current="page"] {
-        color: var(--ink-primary);
-        font-weight: 600;
-      }
-
-      .topbar-actions {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: var(--space-2);
-      }
-
-      .search-field {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--space-2);
-        min-block-size: 40px;
-        padding-inline: var(--space-3);
-        border-radius: var(--radius-md);
-        background: var(--surface-sunken);
-        border: 1px solid var(--border-subtle);
-        box-shadow: var(--shadow-inset);
-      }
-      .search-field input {
-        inline-size: clamp(140px, 18vw, 230px);
-        background: transparent;
-        border: none;
-        outline: none;
-        font-size: var(--step--1);
-      }
-
-      .pill-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--space-2);
-        min-block-size: 40px;
-        min-inline-size: 40px;
-        padding: 0 var(--space-3);
-        border-radius: var(--radius-md);
-        background: var(--surface-elevated);
-        border: 1px solid var(--border-subtle);
-        box-shadow: var(--shadow-elevation-1);
-        font-size: var(--step--1);
-        font-weight: 600;
-        white-space: nowrap;
-        flex-shrink: 0;
-        transition: transform 0.18s var(--ease-natural), box-shadow 0.18s var(--ease-natural), border-color 0.18s var(--ease-fast);
-      }
-      .pill-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-elevation-2); }
-      .pill-btn:active { transform: translateY(0); box-shadow: var(--shadow-inset); }
-      .pill-btn[aria-pressed="true"] {
-        border-color: var(--brand-primary);
-        color: var(--brand-primary);
-        background: oklch(from var(--brand-primary) l c h / 0.10);
-      }
-
-      .card-shell { container-type: inline-size; container-name: card; }
-      .ui-card {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
-        padding: var(--space-card-padding);
-        border-radius: var(--radius-card);
-        background: var(--surface-card);
-        border: 1px solid var(--border-subtle);
-        transition: transform 0.2s var(--ease-natural), box-shadow 0.2s var(--ease-natural), border-color 0.2s var(--ease-fast);
-      }
-      .ui-card.elevated { box-shadow: var(--shadow-elevation-2); }
-      .ui-card.outlined { box-shadow: var(--catch-light); }
-      .ui-card.filled { background: var(--surface-sunken); box-shadow: var(--shadow-inset); }
-      .ui-card.interactive { cursor: pointer; box-shadow: var(--shadow-elevation-1); text-align: start; inline-size: 100%; }
-      .ui-card.interactive:hover { transform: translateY(-2px); box-shadow: var(--shadow-elevation-2); border-color: oklch(from var(--brand-primary) l c h / 0.45); }
-      .ui-card.interactive[aria-selected="true"] {
-        border-color: var(--brand-primary);
-        box-shadow: var(--shadow-elevation-2), 0 0 0 1px oklch(from var(--brand-primary) l c h / 0.35);
-      }
-
-      .tabular-metric {
-        font-family: var(--font-mono);
-        font-variant-numeric: tabular-nums;
-        font-size: var(--step-2);
-        font-weight: 700;
-        line-height: 1.1;
-      }
-      .mono-tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.2rem 0.55rem;
-        border-radius: var(--radius-pill);
-        font-family: var(--font-mono);
-        font-size: 0.75rem;
-        font-weight: 600;
-        background: oklch(from var(--brand-primary) l c h / 0.12);
-        color: var(--brand-primary);
-        white-space: nowrap;
-        flex-shrink: 0;
-      }
-      .mono-tag.warn { background: oklch(from var(--status-warn) l c h / 0.16); color: var(--status-warn); }
-      .mono-tag.danger { background: oklch(from var(--status-danger) l c h / 0.16); color: var(--status-danger); }
-      .mono-tag.ok { background: oklch(from var(--brand-accent) l c h / 0.16); color: var(--brand-accent); }
-
-      .node-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-        gap: var(--space-3);
-      }
-      .flow-connector {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        padding: var(--space-2) var(--space-3);
-        border-radius: var(--radius-sm);
-        background: var(--surface-sunken);
-        border: 1px dashed var(--border-subtle);
-        font-family: var(--font-mono);
-        font-size: 0.78rem;
-        color: var(--ink-secondary);
-        margin-block: var(--space-3);
-      }
-
-      .view-panel[hidden] { display: none; }
-      .section-head {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: var(--space-3);
-        margin-block-end: var(--space-4);
-      }
-      h1 { font-size: var(--step-2); line-height: 1.15; letter-spacing: -0.02em; text-wrap: balance; }
-      h2 { font-size: var(--step-1); line-height: 1.22; letter-spacing: -0.015em; text-wrap: balance; }
-      h3 { font-size: var(--step-0); font-weight: 700; text-wrap: balance; }
-      .muted-sub { font-size: var(--step--1); color: var(--ink-secondary); max-inline-size: 62ch; text-wrap: pretty; }
-
-      .spec-list { display: flex; flex-direction: column; gap: var(--space-2); }
-      .spec-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        gap: var(--space-3);
-        padding-block: var(--space-2);
-        border-block-end: 1px solid var(--border-subtle);
-        font-size: var(--step--1);
-      }
-      .spec-item code { font-family: var(--font-mono); color: var(--brand-primary); font-size: 0.8rem; }
-
-      .style-chip-bar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2);
-        margin-block-end: var(--space-4);
-      }
-    }
-
-    @layer styles {
-      /* Live Lab 7 Archetype Token Modifiers scoped to #style-lab-stage */
-      #style-lab-stage { transition: all 0.22s var(--ease-natural); }
-      #style-lab-stage[data-preview-style="soft"] {
-        --lab-radius: 1.35rem;
-        --lab-border: 1px solid oklch(from var(--ink-primary) l c h / 0.08);
-        --lab-shadow: 0 8px 24px -6px light-dark(oklch(0.2 0.02 255 / 0.08), oklch(from var(--brand-primary) l c h / 0.14)), var(--catch-light);
-        --lab-bg: light-dark(oklch(0.99 0.008 240), oklch(0.22 0.024 245));
-      }
-      #style-lab-stage[data-preview-style="hi-tech"] {
-        --lab-radius: 0.35rem;
-        --lab-border: 1px solid oklch(from var(--brand-primary) l c h / 0.42);
-        --lab-shadow: 0 0 0 1px oklch(from var(--brand-primary) l c h / 0.18), inset 0 1px 0 0 oklch(from var(--brand-primary) l c h / 0.25);
-        --lab-bg: light-dark(oklch(0.97 0.01 235), oklch(0.19 0.028 245));
-      }
-      #style-lab-stage[data-preview-style="tactile"] {
-        --lab-radius: 0.95rem;
-        --lab-border: 1px solid var(--border-subtle);
-        --lab-shadow: var(--shadow-elevation-2);
-        --lab-bg: var(--surface-card);
-      }
-      #style-lab-stage[data-preview-style="elevated"] {
-        --lab-radius: 1.1rem;
-        --lab-border: 1px solid oklch(1 0 0 / 0.14);
-        --lab-shadow: var(--shadow-elevation-3);
-        --lab-bg: var(--surface-elevated);
-      }
-      #style-lab-stage[data-preview-style="retro"] {
-        --lab-radius: 0.25rem;
-        --lab-border: 2px solid var(--ink-primary);
-        --lab-shadow: 4px 4px 0 0 oklch(from var(--brand-primary) l c h / 0.72);
-        --lab-bg: light-dark(oklch(0.97 0.02 95), oklch(0.22 0.025 85));
-      }
-      #style-lab-stage[data-preview-style="vintage"] {
-        --lab-radius: 0.5rem;
-        --lab-border: 1px solid light-dark(oklch(0.55 0.05 65 / 0.35), oklch(0.75 0.04 75 / 0.28));
-        --lab-shadow: 0 4px 14px -4px oklch(0.18 0.03 65 / 0.22), inset 0 1px 0 0 oklch(0.95 0.03 80 / 0.22);
-        --lab-bg: light-dark(oklch(0.96 0.02 80), oklch(0.22 0.022 65));
-      }
-      #style-lab-stage[data-preview-style="clinical"] {
-        --lab-radius: 0.5rem;
-        --lab-border: 1px solid oklch(from var(--ink-primary) l c h / 0.18);
-        --lab-shadow: 0 1px 2px 0 oklch(0.2 0.01 250 / 0.05);
-        --lab-bg: light-dark(oklch(1 0 0), oklch(0.21 0.015 245));
-      }
-      .lab-preview-surface {
-        border-radius: var(--lab-radius, 1rem);
-        border: var(--lab-border, 1px solid var(--border-subtle));
-        box-shadow: var(--lab-shadow, var(--shadow-elevation-2));
-        background: var(--lab-bg, var(--surface-card));
-        padding: var(--space-6);
-        transition: all 0.22s var(--ease-natural);
-      }
-    }
-
-    @layer motion {
-      :focus-visible {
-        outline: 2px solid var(--brand-primary);
-        outline-offset: 2px;
-      }
-      @media (any-pointer: coarse) {
-        .pill-btn, .nav-btn, .ui-card.interactive {
-          min-block-size: 48px;
-          min-inline-size: 48px;
-        }
-      }
-      @media (prefers-reduced-transparency: reduce) {
-        .adaptive-nav, .frosted-topbar {
-          backdrop-filter: none;
-          background: var(--surface-card);
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after {
-          transition-duration: 0.01ms;
-          animation-duration: 0.01ms;
-        }
-      }
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="Atlas unificado Shredded-Shape v1.4 com pipeline Actor-Critic, 7 arquetipos reais, Mobile-First, OKLCH 5 planos, elevacao fisica, estados e @container." />
+  <title>Shredded-Shape v1.4 · Atlas Unificado de Arquitetura &amp; UI Tatil</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="atlas_styles.css" />
+  <script src="atlas_app.js" defer></script>
 </head>
 <body>
-  <a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
+  <svg hidden aria-hidden="true" width="0" height="0">
+    <symbol id="ic-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></symbol>
+    <symbol id="ic-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m2 12 8.58 3.91a2 2 0 0 0 1.66 0L22 12"/><path d="m2 17 8.58 3.91a2 2 0 0 0 1.66 0L22 17"/></symbol>
+    <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="ic-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/></symbol>
+    <symbol id="ic-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol>
+    <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="ic-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></symbol>
+    <symbol id="ic-mobile" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></symbol>
+    <symbol id="ic-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+    <symbol id="ic-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol>
+  </svg>
 
-  <div class="app-shell">
-    <nav class="adaptive-nav" aria-label="Navegação principal">
-      <div class="nav-brand">
-        <span class="brand-mark">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-            <rect x="3" y="4" width="18" height="4" rx="2"/>
-            <rect x="5" y="10" width="16" height="4" rx="2"/>
-            <rect x="3" y="16" width="14" height="4" rx="2"/>
-          </svg>
-          <span class="brand-text">Shredded-Shape</span>
-        </span>
-        <button id="sidebar-collapse-btn" class="pill-btn sidebar-toggle" type="button" aria-label="Recolher ou expandir barra lateral" aria-expanded="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
+  <section id="app-shell" class="app-shell" data-rail="expanded">
+    <header class="top-navbar">
+      <div class="flex-cluster">
+        <button id="nav-toggle" type="button" class="quiet-btn" aria-expanded="true" aria-controls="side-drawer" aria-label="Alternar menu lateral" title="Alternar sidebar (Atalho: [)">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-menu"/></svg>
+        </button>
+        <strong class="truncate-safe">Shredded-Shape v1.4</strong>
+        <span id="navbar-chapter-title" class="muted truncate-safe">1. Pipeline &amp; 7 Estilos</span>
+      </div>
+      <div class="flex-cluster">
+        <div class="swatch-rack" role="group" aria-label="Matiz de destaque OKLCH">
+          <button type="button" class="swatch-btn" data-hue="255" aria-pressed="true" aria-label="Ardosia 255" style="--swatch-c: oklch(0.60 0.17 255);"></button>
+          <button type="button" class="swatch-btn" data-hue="160" aria-pressed="false" aria-label="Esmeralda 160" style="--swatch-c: oklch(0.62 0.16 160);"></button>
+          <button type="button" class="swatch-btn" data-hue="65" aria-pressed="false" aria-label="Ambar 65" style="--swatch-c: oklch(0.66 0.15 65);"></button>
+          <button type="button" class="swatch-btn" data-hue="28" aria-pressed="false" aria-label="Terracota 28" style="--swatch-c: oklch(0.60 0.17 28);"></button>
+        </div>
+        <label for="theme-select" class="sr-only">Selecionar tema e polaridade</label>
+        <select id="theme-select" name="theme" class="theme-select" aria-label="Selecionar tema e polaridade">
+          <optgroup label="Escuro Mineral">
+            <option value="tactile-matte">Tactile Matte (Padrao)</option>
+            <option value="phantom-obsidian">Phantom Obsidian</option>
+            <option value="quiet-titanium">Quiet Titanium</option>
+          </optgroup>
+          <optgroup label="Claro &amp; Nexus 135°">
+            <option value="nexus-slate">Nexus Slate 135°</option>
+            <option value="steadfast-stainless">Steadfast Stainless</option>
+            <option value="moss-calm">Moss Calm 135°</option>
+          </optgroup>
+        </select>
+        <button id="open-export-btn" type="button" class="tactile-key btn-primary-bevel">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-code"/></svg>
+          <span class="rail-label">Exportar Tokens</span>
         </button>
       </div>
+    </header>
 
-      <ul class="nav-list" role="list">
-        <li>
-          <button class="nav-btn" type="button" data-view-target="asis" aria-current="page">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-              <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M6 9v6"/><circle cx="18" cy="12" r="3"/><path d="M9 6h4a2 2 0 0 1 2 2v4"/>
-            </svg>
-            <span class="nav-label">Atual (As-Is)</span>
+    <aside id="side-drawer" class="side-drawer" aria-label="Navegacao por capitulos">
+      <div class="chapter-nav">
+        <p class="nav-group-label rail-label">Arquitetura &amp; Espaco</p>
+        <nav class="chapter-nav" aria-label="Fundamentos e Arquitetura">
+          <button type="button" class="chapter-nav-btn" data-chapter="1" data-tooltip="1. Pipeline &amp; 7 Estilos" aria-current="page">
+            <span class="nav-ic-box"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-layers"/></svg></span>
+            <span class="rail-label truncate-safe">Pipeline &amp; 7 Estilos</span>
+            <span class="rail-label nav-step">01</span>
           </button>
-        </li>
-        <li>
-          <button class="nav-btn" type="button" data-view-target="tobe">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/>
-            </svg>
-            <span class="nav-label">Nova Suíte (To-Be)</span>
+          <button type="button" class="chapter-nav-btn" data-chapter="2" data-tooltip="2. Hierarquia &amp; Anti-Slop">
+            <span class="nav-ic-box"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-check"/></svg></span>
+            <span class="rail-label truncate-safe">Hierarquia &amp; Anti-Slop</span>
+            <span class="rail-label nav-step">02</span>
           </button>
-        </li>
-        <li>
-          <button class="nav-btn" type="button" data-view-target="styles">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-              <circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 8l6-3"/><path d="M12 14l6-3"/>
-            </svg>
-            <span class="nav-label">Estilos &amp; Tokens</span>
+          <button type="button" class="chapter-nav-btn" data-chapter="3" data-tooltip="3. Mobile-First &amp; Tab">
+            <span class="nav-ic-box"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-mobile"/></svg></span>
+            <span class="rail-label truncate-safe">Mobile-First &amp; Tab</span>
+            <span class="rail-label nav-step">03</span>
           </button>
-        </li>
-      </ul>
-
-      <div class="nav-footer-meta ui-card filled" style="margin-top:auto; padding:0.75rem;">
-        <span class="mono-tag ok">SSOT v1.0</span>
-        <span class="muted-sub" style="font-size:0.75rem;">OKLCH • WCAG 2.2 • RAW</span>
-      </div>
-    </nav>
-
-    <div class="main-area">
-      <header class="frosted-topbar">
-        <nav class="breadcrumbs" aria-label="Caminho de navegação">
-          <ol role="list">
-            <li><span>shredded-shape</span></li>
-            <li id="breadcrumb-current" aria-current="page">Estado Atual (franklin-quebragalho As-Is)</li>
-          </ol>
         </nav>
-
-        <div class="topbar-actions">
-          <label class="search-field" for="node-filter-input">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-              <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
-            </svg>
-            <input id="node-filter-input" type="search" placeholder="Filtrar skill ou script (Ctrl+K)" aria-label="Filtrar skills, scripts ou integrações">
-          </label>
-          <button id="theme-toggle-btn" class="pill-btn" type="button" aria-pressed="false" aria-label="Alternar tema claro e escuro">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-              <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-            </svg>
-            <span id="theme-toggle-label">Tema: Escuro</span>
+        <p class="nav-group-label is-separated rail-label">Optica, Estado &amp; Box</p>
+        <nav class="chapter-nav" aria-label="Optica, Estado e Layout">
+          <button type="button" class="chapter-nav-btn" data-chapter="4" data-tooltip="4. OKLCH &amp; Gradientes">
+            <span class="nav-ic-box"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-sliders"/></svg></span>
+            <span class="rail-label truncate-safe">OKLCH &amp; Gradientes</span>
+            <span class="rail-label nav-step">04</span>
           </button>
-        </div>
-      </header>
+          <button type="button" class="chapter-nav-btn" data-chapter="5" data-tooltip="5. Elevacao &amp; Sombras">
+            <span class="nav-ic-box"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-star"/></svg></span>
+            <span class="rail-label truncate-safe">Elevacao &amp; Sombras</span>
+            <span class="rail-label nav-step">05</span>
+          </button>
+          <button type="button" class="chapter-nav-btn" data-chapter="6" data-tooltip="6. Hardware &amp; Estados">
+            <span class="nav-ic-box"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-code"/></svg></span>
+            <span class="rail-label truncate-safe">Hardware &amp; Estados</span>
+            <span class="rail-label nav-step">06</span>
+          </button>
+          <button type="button" class="chapter-nav-btn" data-chapter="7" data-tooltip="7. @container &amp; Subgrid">
+            <span class="nav-ic-box"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-grid"/></svg></span>
+            <span class="rail-label truncate-safe">@container &amp; Subgrid</span>
+            <span class="rail-label nav-step">07</span>
+          </button>
+        </nav>
+      </div>
+      <footer class="inset-well flex-row side-footer">
+        <span id="hue-readout" class="mono-metric muted">H=255</span>
+        <button id="rail-collapse-btn" type="button" class="quiet-btn" aria-expanded="true" aria-controls="side-drawer" aria-label="Recolher ou expandir barra lateral">
+          <svg class="rail-chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-chevron"/></svg>
+          <span class="rail-label">Recolher [</span>
+        </button>
+      </footer>
+    </aside>
+    <div id="drawer-scrim" class="drawer-scrim" aria-hidden="true"></div>
 
-      <main id="main-content" class="content-wrap" data-state="idle">
-        <div id="ui-live-status" class="sr-only" role="status" aria-live="polite" style="position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%);">Estado pronto</div>
-        <section class="metrics-ram" aria-label="Indicadores comparativos da arquitetura">
-          <article class="ui-card elevated">
-            <span class="muted-sub">Skills no franklin-quebragalho (As-Is)</span>
-            <strong class="tabular-metric">8 UI / 28 Total</strong>
-            <span class="mono-tag warn">0 no plugin global core</span>
-          </article>
-          <article class="ui-card elevated">
-            <span class="muted-sub">Pipeline Separado (shredded-shape)</span>
-            <strong class="tabular-metric">4 + 2 Packs</strong>
-            <span class="mono-tag ok">Plugin dedicado + DAG fechado</span>
-          </article>
-          <article class="ui-card elevated">
-            <span class="muted-sub">Teto Cognitivo por Nó</span>
-            <strong class="tabular-metric">&lt;= 5 regras</strong>
-            <span class="mono-tag">Anti-Complexity Wall</span>
-          </article>
-          <article class="ui-card elevated">
-            <span class="muted-sub">Gatekeeper WCAG 2.2 / OKLCH</span>
-            <strong class="tabular-metric">FNR &lt; 0.001</strong>
-            <span class="mono-tag ok">RAW SHA-256 + Self-Refine</span>
-          </article>
-        </section>
+    <main id="main-content" tabindex="-1" data-state="idle">
+      <p id="live-status" class="sr-only" role="status" aria-live="polite">Atlas v1.4 carregado</p>
 
-        <div class="split-workbench">
-          <div>
-            <!-- VIEW 1: AS-IS -->
-            <section id="view-asis" class="view-panel" aria-labelledby="heading-asis">
-              <div class="section-head">
-                <div>
-                  <h1 id="heading-asis">Fotografia Atual: UI no franklin-quebragalho (As-Is)</h1>
-                  <p class="muted-sub">Clique em qualquer nó para inspecionar descrição, scripts, sobreposições e motivo da separação.</p>
-                </div>
-                <span class="mono-tag danger">TASK-06 Aberta • Colisão Onda 2</span>
-              </div>
-
-              <div class="flow-connector">
-                <span>Sync Global:</span>
-                <code>sync_gemini_ecosystem.py</code>
-                <span>exporta apenas 5 skills backend; UI depende de .agents/skills.json por repo</span>
-              </div>
-
-              <div id="asis-grid" class="node-grid" role="listbox" aria-label="Skills e subagentes atuais de UI"></div>
-              <p id="asis-empty" class="ui-card filled" hidden>Nenhum nó do estado atual corresponde ao filtro digitado.</p>
-            </section>
-
-            <!-- VIEW 2: TO-BE -->
-            <section id="view-tobe" class="view-panel" hidden aria-labelledby="heading-tobe">
-              <div class="section-head">
-                <div>
-                  <h1 id="heading-tobe">Arquitetura Separada: shredded-shape (To-Be)</h1>
-                  <p class="muted-sub">Fluxo Ator-Crítico de 4 estágios sem colisão horizontal, integrado a DevTools, Stitch, Figma, Google Fonts e 3D.</p>
-                </div>
-                <span class="mono-tag ok">Loop Fechado Worker &lt;-&gt; Judge</span>
-              </div>
-
-              <div class="flow-connector">
-                <span>Orquestração:</span>
-                <code>0. Analyst</code>
-                <span>-&gt;</span>
-                <code>1. Brand/UX Planner</code>
-                <span>-&gt;</span>
-                <code>2. Clean Worker</code>
-                <span>&lt;-&gt;</span>
-                <code>3. Quality Judge</code>
-              </div>
-
-              <div id="tobe-grid" class="node-grid" role="listbox" aria-label="Nova suíte shredded-shape"></div>
-              <p id="tobe-empty" class="ui-card filled" hidden>Nenhum componente da nova arquitetura corresponde ao filtro.</p>
-            </section>
-
-            <!-- VIEW 3: STYLE LAB -->
-            <section id="view-styles" class="view-panel" hidden aria-labelledby="heading-styles">
-              <div class="section-head">
-                <div>
-                  <h1 id="heading-styles">Laboratório de Estilos de Token &amp; Menu</h1>
-                  <p class="muted-sub">Alterne o arquétipo para observar raios, sombras em 3 camadas, iluminação de borda no escuro e menu chrome.</p>
-                </div>
-              </div>
-
-              <div id="style-chip-bar" class="style-chip-bar" role="group" aria-label="Selecionar estilo de token e menu"></div>
-
-              <div id="style-lab-stage" class="lab-preview-surface" data-preview-style="tactile">
-                <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:0.75rem; margin-bottom:1rem;">
-                  <div>
-                    <h2 id="lab-style-title">Tactile</h2>
-                    <span id="lab-style-meta" class="mono-tag">radius: 0.95rem • shadow: 3-layer</span>
-                  </div>
-                  <nav aria-label="Exemplo de menu no estilo ativo" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                    <span class="pill-btn" aria-pressed="true">Visão</span>
-                    <span class="pill-btn">Tokens</span>
-                    <span class="pill-btn">Auditoria</span>
-                  </nav>
-                </div>
-                <div class="node-grid">
-                  <article class="ui-card outlined" style="border-radius:var(--lab-radius); border:var(--lab-border);">
-                    <h3>Superfície &amp; Iluminação</h3>
-                    <p id="lab-style-lighting" class="muted-sub">Claro: Umbra + Penumbra negativa + Catch-light | Escuro: Elevação L + Rim Specular.</p>
-                  </article>
-                  <article class="ui-card filled" style="border-radius:var(--lab-radius);">
-                    <h3>Diretriz de Menu &amp; Tipografia</h3>
-                    <p id="lab-style-menu" class="muted-sub">Alvos &gt;= 48px, zero emojis, tabular-nums, zero texto explicativo supérfluo.</p>
-                  </article>
-                </div>
-              </div>
-            </section>
+      <article id="chapter-1" class="chapter-view" aria-labelledby="ch1-h1">
+        <header class="card">
+          <div class="flex-row">
+            <div>
+              <h1 id="ch1-h1">Pipeline Actor-Critic &amp; 7 Arquetipos Reais</h1>
+              <p class="muted">4 estagios disjuntos (Analyst -&gt; Planner -&gt; Worker &lt;-&gt; Judge) com contraste OKLab verificado.</p>
+            </div>
+            <span class="engraved-pill"><span class="lum-bead" data-tone="ok"></span>6/6 Skills · F1=1.0</span>
           </div>
+          <div class="flex-row">
+            <label class="search-well">
+              <svg class="search-ic" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-search"/></svg>
+              <input id="search-input" class="search-input" type="search" placeholder="Filtrar skill, script ou defeito (Ctrl K)..." aria-label="Filtrar nos do catalogo" />
+            </label>
+            <div class="segmented-well" role="group" aria-label="Alternar visao do catalogo">
+              <button type="button" class="seg-btn" data-catalog-mode="tobe" aria-pressed="true">Pipeline To-Be (6)</button>
+              <button type="button" class="seg-btn" data-catalog-mode="asis" aria-pressed="false">Diagnostico As-Is (4)</button>
+            </div>
+          </div>
+        </header>
 
-          <!-- RIGHT INSPECTOR PANEL -->
-          <aside class="card-shell" aria-label="Inspetor técnico do nó selecionado">
-            <article class="ui-card elevated" id="inspector-panel">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
-                <span id="inspector-badge" class="mono-tag">Inspetor</span>
-                <span id="inspector-version" class="mono-tag ok">v1.0.0</span>
-              </div>
-              <h2 id="inspector-title">Selecione um nó</h2>
-              <p id="inspector-desc" class="muted-sub"></p>
-              <div id="inspector-specs" class="spec-list"></div>
+        <section class="bento-12" aria-label="Explorador de skills e inspetor">
+          <div class="span-8">
+            <div id="catalog-grid" class="ram-grid" role="group" aria-label="Skills e pacotes"></div>
+            <p id="catalog-empty" class="inset-well" hidden>Nenhum item corresponde ao filtro atual.</p>
+          </div>
+          <aside class="span-4" aria-label="Inspetor de contrato">
+            <article class="card">
+              <header id="insp-header" class="card-head">
+                <div class="card-head-main"><h2 id="insp-title">0. ui-frontend-analyst</h2><p id="insp-sub" class="card-meta">Stage 0 · Read-Only</p></div>
+                <span class="engraved-pill"><span id="insp-bead" class="lum-bead" data-tone="ok"></span><span id="insp-badge">AST + DevTools</span></span>
+              </header>
+              <p id="insp-desc" class="muted"></p>
+              <div class="inset-well"><dl id="insp-specs" class="spec-dl"></dl></div>
+              <button id="insp-copy-btn" type="button" class="tactile-key" data-copy="" data-label="CLI">Copiar Comando</button>
             </article>
           </aside>
-        </div>
-      </main>
-    </div>
-  </div>
-  <script>
-    (() => {
-      const AS_IS_NODES = [
-        {
-          id: 'design-md',
-          title: 'design-md',
-          version: 'v8.2.0',
-          badge: 'Contrato Estático',
-          tone: 'warn',
-          summary: 'Redige DESIGN.md pelos 9 Eixos, mas não gera paletas no Stitch, não busca ícones no Figma/Fonts e não define estilos nominais.',
-          specs: [
-            ['Localização Atual', 'franklin-quebragalho/skills/design-md/'],
-            ['Lacuna', 'Sem pipeline de Branding, Google Fonts, Stitch ou 3D'],
-            ['Destino To-Be', 'Absorvida por ui-brand-ux-planner']
-          ]
-        },
-        {
-          id: 'frontend-code-architect',
-          title: 'frontend-code-architect',
-          version: 'v7.0.0',
-          badge: 'Implementação',
-          tone: 'warn',
-          summary: 'Implementa React/Next/Tailwind em 3 níveis de complexidade, porém sem ciclo ReAct formal nem check físico RAW SHA-256.',
-          specs: [
-            ['Localização Atual', 'franklin-quebragalho/skills/frontend-code-architect/'],
-            ['Lacuna', 'Sem trava explícita de iluminação dinâmica no escuro'],
-            ['Destino To-Be', 'Evolui para ui-clean-worker (RAW + ReAct)']
-          ]
-        },
-        {
-          id: 'frontend-ui-ux-auditor',
-          title: 'frontend-ui-ux-auditor',
-          version: 'v3.1.0',
-          badge: 'Sobreposição 60%',
-          tone: 'danger',
-          summary: 'Audita DOM, WCAG e sombras via regex Python (ui_ux_frontend_auditor.py), sem leitura computada do navegador ao vivo.',
-          specs: [
-            ['Script', 'scripts/ui_ux_frontend_auditor.py'],
-            ['Problema', 'Sobrepõe 60% das regras de frontend-testing-auditor'],
-            ['Destino To-Be', 'Funde em ui-quality-judge + ui-frontend-analyst']
-          ]
-        },
-        {
-          id: 'frontend-testing-auditor',
-          title: 'frontend-testing-auditor',
-          version: 'v5.0.0',
-          badge: 'Gatekeeper QA',
-          tone: 'warn',
-          summary: 'Executa audit_tactile_ui.py (A11y, FSM, OKLCH, XSS), mas duplicava validações visuais e não tinha loop Actor-Critic fechado.',
-          specs: [
-            ['Script', 'scripts/audit_tactile_ui.py'],
-            ['Métrica', 'Readiness >= 90.0 (4 pilares)'],
-            ['Destino To-Be', 'Consolidada em ui-quality-judge (FNR < 0.001)']
-          ]
-        },
-        {
-          id: 'plan-uiux',
-          title: 'plan-uiux',
-          version: 'v1.2.0',
-          badge: 'REA Bundles',
-          tone: 'warn',
-          summary: 'Focada apenas em bundles compilados via REA; não inventariava fontes, menus, IA Slop ou navegação antes/depois em código fonte.',
-          specs: [
-            ['Localização Atual', 'franklin-quebragalho/skills/plan-uiux/'],
-            ['Lacuna', 'Falta Chrome DevTools MCP e mapa de rotas/sidebar'],
-            ['Destino To-Be', 'Absorvida por ui-frontend-analyst']
-          ]
-        },
-        {
-          id: 'complex-zero',
-          title: 'complex-zero',
-          version: 'v3.1.0',
-          badge: 'CDP Preso',
-          tone: 'ok',
-          summary: 'Única skill com probe Chrome DevTools (visual_hierarchy_and_cdp_probe.py), porém confinada a grafos @xyflow/react e Next 15.',
-          specs: [
-            ['Scripts', 'complex_zero_ast_auditor.py + cdp_probe.py'],
-            ['Migração', 'Migrada como Domain Pack em shredded-shape'],
-            ['Integração', 'Probe CDP generalizado no ui-frontend-analyst']
-          ]
-        },
-        {
-          id: 'clinical-minimalist-ui',
-          title: 'clinical-minimalist-ui',
-          version: 'v5.0.0',
-          badge: 'Domain Pack',
-          tone: 'ok',
-          summary: 'Especialista clínica para EHR/PEP, calculadoras determinísticas e folha A4 .sus-grid @media print com zero emojis.',
-          specs: [
-            ['Localização', 'Migrada para shredded-shape/skills/'],
-            ['Polaridades', 'clinical-day (AAA) e clinical-night'],
-            ['Regra', 'Anti-squish em unidades clínicas (mg/dL)']
-          ]
-        },
-        {
-          id: 'dag-3-plus-1',
-          title: 'DAG 3+1 Atual (TASK-06)',
-          version: 'v4.0.0',
-          badge: 'Colisão Onda 2',
-          tone: 'danger',
-          summary: 'ui-controls-data e ui-motion-interaction rodam em paralelo no mesmo workspace inherit e colidem nos mesmos arquivos CSS/TSX.',
-          specs: [
-            ['Subagentes', 'shell -> (controls || motion) -> observer'],
-            ['Bloqueio', 'TASK-06 aberta em franklin-quebragalho/.context'],
-            ['Correção', 'Substituída por 4 estágios verticais + workspace share']
-          ]
-        }
-      ];
+        </section>
 
-      const TO_BE_NODES = [
-        {
-          id: 'ui-frontend-analyst',
-          title: '0. ui-frontend-analyst',
-          version: 'v1.0.0',
-          badge: 'ui-analyst (Read-Only)',
-          tone: 'ok',
-          summary: 'Inventaria tokens, cores por arquivo/seletor, menus, navegação, tipografia, ícones, espaçamento, contratos e stack via DevTools + AST.',
-          specs: [
-            ['Referências', 'web.dev, taste-skill, modern-web-guidance, Drive'],
-            ['Scripts', 'frontend_inventory_and_slop_scanner.py + devtools_live_probe.js'],
-            ['Entregável', 'AI Slop Score + Diagrama Atual + Antes vs. Depois']
-          ]
-        },
-        {
-          id: 'ui-brand-ux-planner',
-          title: '1. ui-brand-ux-planner',
-          version: 'v1.0.0',
-          badge: 'ui-planner (DAG <= 5)',
-          tone: 'ok',
-          summary: 'Define Branding, Objetivo, OKLCH 60-30-10 sem neon, estilo nominal, Stitch, Figma MCP, Google Fonts, 3D/Unity e DAG <= 5 regras/nó.',
-          specs: [
-            ['Estilos', 'Soft, Hi-Tech, Tactile, Elevated, Retro, Vintage, Clinical'],
-            ['Assets', 'Stitch (agent-browser), Figma MCP, Google Fonts, Three.js/Unity'],
-            ['Contratos', 'DESIGN.md + ui_execution_dag.json (extra=forbid)']
-          ]
-        },
-        {
-          id: 'ui-clean-worker',
-          title: '2. ui-clean-worker',
-          version: 'v1.0.0',
-          badge: 'ui-worker (ReAct + RAW)',
-          tone: 'ok',
-          summary: 'Codifica UI limpa, intuitiva e sem excesso de texto: claro com sombras 3 camadas, escuro com rim light/halo sutil e efeito fosco.',
-          specs: [
-            ['Pós-Condição', 'verify_raw_frontend.py (SHA-256 + tsc + zero stubs)'],
-            ['Óptica', 'Luz zenital, fosco blur+saturate, zero preto puro OLED e zero neon'],
-            ['Paralelismo', 'workspace: share por rota vertical (fim da TASK-06)']
-          ]
-        },
-        {
-          id: 'ui-quality-judge',
-          title: '3. ui-quality-judge',
-          version: 'v1.0.0',
-          badge: 'ui-judge (Actor-Critic)',
-          tone: 'ok',
-          summary: 'Juiz crítico read-only em sandbox: valida contraste OKLCH WCAG 2.2 (FNR < 0.001), 48x48px, :focus-visible, DOM == Tab e Anti-Slop.',
-          specs: [
-            ['Veredito', 'PASSED ou REJECTED -> loop Self-Refine no Worker'],
-            ['Script', 'ui_judge_gatekeeper.py + audit_tactile_ui.py'],
-            ['Privilégio', 'Zero escrita (read_file, run_command, send_message)']
-          ]
-        },
-        {
-          id: 'domain-packs',
-          title: 'Domain Packs Plugáveis',
-          version: 'v5.0 / v3.1',
-          badge: 'Clinical & Complex-Zero',
-          tone: 'ok',
-          summary: 'clinical-minimalist-ui e complex-zero migrados e atualizados para apontar para os 4 novos estágios sem duplicar núcleo.',
-          specs: [
-            ['clinical-minimalist-ui', 'EHR/PEP, A4 .sus-grid, calculadoras determinísticas'],
-            ['complex-zero', '@xyflow/react, WebSocket 150ms, Next.js 15 async params'],
-            ['Ponte 3D', 'Conecta com code-quality-audit-3d-physics (Three.js/Unity)']
-          ]
-        },
-        {
-          id: 'external-bridges',
-          title: 'Pontes de Ferramentas & Referências',
-          version: '2026',
-          badge: 'Ecossistema Integrado',
-          tone: 'ok',
-          summary: 'Integra coleta ao vivo, referências canônicas e ativos externos sem poluir os prompts dos subagentes.',
-          specs: [
-            ['Auditoria & Regras', 'Chrome DevTools MCP, web.dev, taste-skill, Meu Drive, modern-web-guidance'],
-            ['Design & Ativos', 'Google Stitch (agent-browser), Figma MCP, Google Fonts (.woff2)'],
-            ['Runtime & 3D', 'Next.js 15+, Tailwind v4 @theme, Motion, Three.js / Unity Hub']
-          ]
-        }
-      ];
+        <section id="style-lab-stage" class="card" data-preview-style="tactile" aria-label="Laboratorio dos 7 arquetipos">
+          <div class="flex-row">
+            <div class="stack-sm"><h2 id="lab-title">Tactile Matte (5 Planos Fisicos)</h2><p id="lab-meta" class="card-meta">radius: 1.0rem · carved well · + .tactile-key</p></div>
+            <div class="segmented-well" role="group" aria-label="Selecionar estilo visual">
+              <button type="button" class="seg-btn" data-style-key="soft" aria-pressed="false">Soft</button>
+              <button type="button" class="seg-btn" data-style-key="hi-tech" aria-pressed="false">Hi-Tech</button>
+              <button type="button" class="seg-btn" data-style-key="tactile" aria-pressed="true">Tactile</button>
+              <button type="button" class="seg-btn" data-style-key="elevated" aria-pressed="false">Elevated</button>
+              <button type="button" class="seg-btn" data-style-key="retro" aria-pressed="false">Retro</button>
+              <button type="button" class="seg-btn" data-style-key="vintage" aria-pressed="false">Vintage</button>
+              <button type="button" class="seg-btn" data-style-key="clinical" aria-pressed="false">Clinical</button>
+            </div>
+          </div>
+          <p id="lab-light" class="inset-well muted">Recessos --bg-well combinados com tampas --bg-key e LEDs 6px .lum-bead.</p>
+        </section>
+      </article>
 
-      const STYLE_PRESETS = {
-        soft: {
-          title: 'Soft (Orgânico Fosco)',
-          meta: 'radius: 1.35rem • chroma <= 0.12 • menu pílula suave',
-          lighting: 'Claro: sombras amplas e difusas | Escuro: elevação suave L=0.22 + borda translúcida sem peso duro.',
-          menu: 'Sidebar flutuante com cantos generosos (22px), gaps amplos (12px) e hover tonal.'
-        },
-        'hi-tech': {
-          title: 'Hi-Tech (Precisão Técnica)',
-          meta: 'radius: 0.35rem • hairline 1px • menu compacto tabular',
-          lighting: 'Claro: sombras curtas nítidas | Escuro: rim especular fino + micro-halo frio sem neon agressivo.',
-          menu: 'Rail técnico com indicadores de 2px em border-inline-start, fontes mono para métricas e atalhos Cmd+K.'
-        },
-        tactile: {
-          title: 'Tactile (Física Zenital)',
-          meta: 'radius: 0.95rem • 3-layer umbra/penumbra • inset press',
-          lighting: 'Claro: 3 camadas de sombra + catch-light superior | Escuro: L=0.16->0.27 + catch-light + afundamento inset.',
-          menu: 'Botões táteis >= 44/48px com feedback cinestésico translateY e zero deformação de texto.'
-        },
-        elevated: {
-          title: 'Elevated (Planos Flutuantes)',
-          meta: 'radius: 1.1rem • 3 níveis de profundidade • vidro fosco',
-          lighting: 'Separação clara entre canvas, cards e modais com backdrop-filter fosco superior e borda 1px.',
-          menu: 'Header e Command Bar elevados com isolation: isolate e transições em transform/opacity.'
-        },
-        retro: {
-          title: 'Retro (Geométrico Estrutural)',
-          meta: 'radius: 0.25rem • borda 2px nítida • offset sólido',
-          lighting: 'Offset sólido controlado no claro e contorno limpo alto-contraste no escuro respeitando WCAG AA.',
-          menu: 'Itens em bloco com indicador geométrico rígido, tipografia grotesca limpa e zero ruído.'
-        },
-        vintage: {
-          title: 'Vintage (Editorial Quente)',
-          meta: 'radius: 0.5rem • serif + sans • baixo croma quente',
-          lighting: 'Papel quente OKLCH no claro, grafite aquecido no escuro com luz zenital amena.',
-          menu: 'Hierarquia editorial 65ch, breadcrumbs claros e botões contidos sem brilho saturado.'
-        },
-        clinical: {
-          title: 'Clinical (Zero-Erro Hospitalar)',
-          meta: 'radius: 0.5rem • WCAG AAA >= 14:1 • anti-squish',
-          lighting: 'Fundo calmo de baixíssimo ofuscamento, alertas cirúrgicos contidos (6px dot) e impressão vetorial A4.',
-          menu: 'Navegação previsível <= 3 cliques, tabular-nums obrigatório e unidades protegidas (mg/dL).'
-        }
-      };
+      <article id="chapter-2" class="chapter-view" hidden aria-labelledby="ch2-h1">
+        <header class="card">
+          <div class="flex-row">
+            <div>
+              <h1 id="ch2-h1">Hierarquia Visual, Escala Stitch &amp; 12 Vetores Anti-Slop</h1>
+              <p class="muted">Substitua confetes coloridos, bordas tracejadas e aninhamento excessivo por divisores limpos e raios concentricos.</p>
+            </div>
+            <button id="toggle-slop-diag" type="button" class="tactile-key btn-latch" aria-pressed="false">
+              <span class="lum-bead" data-tone="warn"></span><span>Ver Diagnostico AI Slop</span>
+            </button>
+          </div>
+        </header>
 
-      const VIEW_TITLES = {
-        asis: 'Estado Atual (franklin-quebragalho As-Is)',
-        tobe: 'Nova Arquitetura Separada (shredded-shape To-Be)',
-        styles: 'Laboratório de Estilos de Token & Menu'
-      };
+        <section class="bento-12" aria-label="Comparador Anti-Slop e Raios Concentricos">
+          <article class="card span-6">
+            <h2>Palco Clean vs. Especime Poluido</h2>
+            <div id="diag-clean-box" class="inset-well">
+              <div class="flex-row">
+                <div><h3>Cluster sa-east-1</h3><p class="muted">Latencia 4.2 ms · 142/500 conexoes</p></div>
+                <span class="engraved-pill"><span class="lum-bead" data-tone="ok"></span>99.98% OK</span>
+              </div>
+              <footer class="flex-row">
+                <button type="button" class="quiet-btn">Logs</button>
+                <button type="button" class="tactile-key btn-primary-bevel">Inspecionar No</button>
+              </footer>
+            </div>
+            <figure id="diag-slop-svg" class="inset-well" hidden>
+              <svg role="img" aria-label="Diagrama vetorial comparando card poluido com card limpo" viewBox="0 0 360 132" width="100%" height="132">
+                <rect x="6" y="8" width="166" height="116" rx="12" fill="none" stroke="currentColor" stroke-dasharray="4 3" opacity="0.7"/>
+                <rect x="16" y="20" width="44" height="16" rx="8" fill="currentColor" opacity="0.22"/>
+                <rect x="66" y="20" width="44" height="16" rx="8" fill="currentColor" opacity="0.22"/>
+                <rect x="116" y="20" width="44" height="16" rx="8" fill="currentColor" opacity="0.22"/>
+                <text x="16" y="64" fill="currentColor" font-size="12">AS-IS: Confetti + Borda Tracejada</text>
+                <rect x="16" y="84" width="144" height="28" rx="6" fill="currentColor" opacity="0.16"/>
+                <rect x="188" y="8" width="166" height="116" rx="12" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.35"/>
+                <text x="200" y="42" fill="currentColor" font-size="12">TO-BE: .engraved-pill + 1 CTA</text>
+                <text x="200" y="70" fill="currentColor" font-size="12" opacity="0.8">Divisoria hairline + foco claro</text>
+              </svg>
+              <figcaption class="muted">Representacao vetorial limpa de 4 defeitos bloqueados pelo Gatekeeper.</figcaption>
+            </figure>
+          </article>
 
-      let activeView = 'asis';
-      let selectedId = 'design-md';
+          <article class="card span-6">
+            <div class="flex-row">
+              <h2>Proporcao 60-30-10 &amp; Raios Concentricos</h2>
+              <button id="toggle-concentric-err" type="button" class="quiet-btn" aria-pressed="false">Simular Erro</button>
+            </div>
+            <div class="ratio-bar" aria-label="Distribuicao cromatica 60 30 10">
+              <span style="flex:6; background: var(--bg-canvas); padding-inline: 8px; border-radius: 0.375rem; display:flex; align-items:center;" class="mono-metric">60%</span>
+              <span style="flex:3; background: var(--bg-card); padding-inline: 8px; border-radius: 0.375rem; display:flex; align-items:center;" class="mono-metric">30%</span>
+              <span style="flex:1; background: var(--brand-fill); color: var(--ink-on-brand); padding-inline: 8px; border-radius: 0.375rem; display:flex; align-items:center; justify-content:center;" class="mono-metric">10%</span>
+            </div>
+            <div id="concentric-outer" class="inset-well" style="border-radius: 20px; padding: 12px;">
+              <div id="concentric-inner" class="card"><span id="concentric-formula" class="mono-metric">R_int = max(4px, 20px - 12px) = 8px</span></div>
+            </div>
+            <div class="ram-grid">
+              <label class="muted control-stack"><span>R_ext: <strong id="r-ext-val">20px</strong></span><input id="r-ext-slider" type="range" min="12" max="28" step="2" value="20" /></label>
+              <label class="muted control-stack"><span>Padding: <strong id="pad-val">12px</strong></span><input id="pad-slider" type="range" min="4" max="16" step="4" value="12" /></label>
+            </div>
+            <details class="inset-well"><summary class="mono-metric">Telemetria Progressiva (1.84 GB/s)</summary><p class="muted">194.200 pacotes/s · Perda 0.001% sem poluir o card principal.</p></details>
+          </article>
+        </section>
+      </article>
 
-      function makeEl(tag, cls, text) {
-        const el = document.createElement(tag);
-        if (cls) el.className = cls;
-        if (text !== undefined) el.textContent = text;
-        return el;
-      }
+      <article id="chapter-3" class="chapter-view" hidden aria-labelledby="ch3-h1">
+        <header class="card">
+          <div class="flex-row">
+            <div>
+              <h1 id="ch3-h1">Mobile-First, Sidebar Colapsavel &amp; Listas Reativas</h1>
+              <p class="muted">Unica arvore DOM migrando de Bottom Bar (360px) para Icon Rail (680px) e Sidebar Colapsavel com lista operacional reativa.</p>
+            </div>
+            <span id="posture-badge" class="engraved-pill">Compacto: Bottom Bar + Sheet</span>
+          </div>
+          <div class="flex-row">
+            <div class="segmented-well" role="group" aria-label="Postura responsiva do simulador">
+              <button type="button" class="seg-btn" data-posture="compact" aria-pressed="true">Compacto 360px</button>
+              <button type="button" class="seg-btn" data-posture="medium" aria-pressed="false">Medio Rail 680px</button>
+              <button type="button" class="seg-btn" data-posture="expanded" aria-pressed="false">Expandido 100%</button>
+            </div>
+            <div class="flex-cluster">
+              <button id="toggle-stretch-btn" type="button" class="tactile-key btn-latch" aria-pressed="false"><span class="lum-bead"></span><span>Esticar 100%</span></button>
+              <button id="toggle-tabs-wrap" type="button" class="tactile-key btn-latch" aria-pressed="false"><span class="lum-bead"></span><span>Quebrar Abas</span></button>
+              <button id="toggle-ergo-guides" type="button" class="tactile-key btn-latch" aria-pressed="false"><span class="lum-bead"></span><span>Guias 48px &amp; Tab</span></button>
+            </div>
+          </div>
+        </header>
 
-      function renderInspector(node) {
-        if (!node) return;
-        selectedId = node.id;
-        const badge = document.getElementById('inspector-badge');
-        badge.className = 'mono-tag ' + (node.tone || '');
-        badge.textContent = node.badge;
-        document.getElementById('inspector-version').textContent = node.version;
-        document.getElementById('inspector-title').textContent = node.title;
-        document.getElementById('inspector-desc').textContent = node.summary;
+        <section id="sandbox-shell" class="sandbox-shell" data-posture="compact" data-sb-collapsed="false" aria-label="Simulador de postura responsiva e sidebar colapsavel">
+          <div class="sandbox-grid">
+            <div class="inset-well sb-rail" role="group" aria-label="Menu colapsavel do simulador">
+              <button type="button" class="chapter-nav-btn ergo-target" data-sb-scope="all" aria-current="page">
+                <span class="nav-ic-box"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-layers"/></svg></span>
+                <span class="sb-label truncate-safe">Entregas (4)</span>
+              </button>
+              <button type="button" class="chapter-nav-btn ergo-target" data-sb-scope="alert">
+                <span class="nav-ic-box"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-star"/></svg></span>
+                <span class="sb-label truncate-safe">Criticos (2)</span>
+              </button>
+              <button id="sb-rail-toggle" type="button" class="quiet-btn ergo-target" aria-pressed="false">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-chevron"/></svg>
+                <span class="sb-label">Colapsar Rail</span>
+              </button>
+            </div>
+            <div class="card">
+              <div id="sandbox-tabs" class="scroll-tabs" role="group" aria-label="Filtros da fila">
+                <button type="button" class="seg-btn ergo-target" data-sb-filter="todos" aria-pressed="true">Todos</button>
+                <button type="button" class="seg-btn ergo-target" data-sb-filter="transito" aria-pressed="false">Em Transito</button>
+                <button type="button" class="seg-btn ergo-target" data-sb-filter="doca" aria-pressed="false">Doca</button>
+                <button type="button" class="seg-btn ergo-target" data-sb-filter="auditado" aria-pressed="false">Auditados</button>
+              </div>
+              <ul id="sandbox-list" class="interactive-list" role="list" aria-label="Fila operacional reativa"></ul>
+              <footer class="card-foot flex-row">
+                <span id="sb-count-badge" class="engraved-pill">4 itens</span>
+                <button id="sandbox-cta" type="button" class="tactile-key btn-primary-bevel ergo-target">Despachar Lote</button>
+              </footer>
+            </div>
+            <aside class="inset-well" aria-label="Painel de apoio contextual">
+              <span id="sb-detail-status" class="engraved-pill">Em Transito</span>
+              <h3 id="sb-detail-title">REM-4092</h3>
+              <p id="sb-detail-meta" class="muted">Porto Velho · 4.0 C · Sensor calibrado em tempo real.</p>
+            </aside>
+          </div>
+        </section>
+      </article>
 
-        const list = document.getElementById('inspector-specs');
-        list.replaceChildren();
-        node.specs.forEach(([k, v]) => {
-          const row = makeEl('div', 'spec-item');
-          row.appendChild(makeEl('span', 'muted-sub', k));
-          row.appendChild(makeEl('code', '', v));
-          list.appendChild(row);
-        });
+      <article id="chapter-4" class="chapter-view" hidden aria-labelledby="ch4-h1">
+        <header class="card">
+          <h1 id="ch4-h1">Sistema 5-Plane OKLCH, Reatividade &amp; Gradientes Perceptuais</h1>
+          <p class="muted">Elevacao escura progride em luminosidade L; use <code>color-mix(in oklab)</code> em estados e <code>in oklch</code> em rampas cromaticas.</p>
+        </header>
+        <section class="card" aria-label="Escada de 5 planos OKLCH">
+          <div class="ram-grid">
+            <div class="ramp-chip" style="background: var(--bg-well);"><strong>0. Poço Sunken</strong><code>--bg-well</code></div>
+            <div class="ramp-chip" style="background: var(--bg-canvas);"><strong>1. Canvas 60%</strong><code>--bg-canvas</code></div>
+            <div class="ramp-chip" style="background: var(--bg-card);"><strong>2. Card 30%</strong><code>--bg-card</code></div>
+            <div class="ramp-chip" style="background: var(--bg-card-lit);"><strong>3. Hover Lit</strong><code>--bg-card-lit</code></div>
+            <div class="ramp-chip" style="background: var(--bg-key); color: var(--ink-on-key);"><strong>4. Tecla Tatil</strong><code>--bg-key</code></div>
+          </div>
+        </section>
+        <section class="card" aria-label="Comparador perceptual e angulo zenital">
+          <div class="flex-row">
+            <div class="segmented-well" role="group" aria-label="Par cromatico do gradiente">
+              <button type="button" class="seg-btn" data-grad-pair="1" data-c1="oklch(0.58 0.19 255)" data-c2="oklch(0.76 0.16 75)" aria-pressed="true">Azul -&gt; Ambar</button>
+              <button type="button" class="seg-btn" data-grad-pair="2" data-c1="oklch(0.58 0.20 295)" data-c2="oklch(0.72 0.17 160)" aria-pressed="false">Violeta -&gt; Esmeralda</button>
+              <button type="button" class="seg-btn" data-grad-pair="3" data-c1="oklch(0.62 0.19 28)" data-c2="oklch(0.70 0.14 205)" aria-pressed="false">Terracota -&gt; Ciano</button>
+            </div>
+            <label class="muted mono-metric control-inline">Angulo Zenital: <strong id="grad-angle-val">135deg</strong>
+              <input id="grad-angle-slider" type="range" min="0" max="360" value="135" />
+            </label>
+          </div>
+          <div class="ram-grid">
+            <div class="stack-sm"><p class="mono-metric muted">linear-gradient(in oklch to right, ...)</p><div id="bar-oklch" class="grad-bar" style="background: linear-gradient(in oklch to right, oklch(0.58 0.19 255), oklch(0.76 0.16 75));"></div></div>
+            <div class="stack-sm"><p class="mono-metric muted">linear-gradient(in srgb to right, ...)</p><div id="bar-srgb" class="grad-bar" style="background: linear-gradient(in srgb to right, oklch(0.58 0.19 255), oklch(0.76 0.16 75));"></div></div>
+            <div class="ramp-chip" style="background-image: linear-gradient(var(--light-angle), var(--brand-soft) 0%, transparent 72%);"><strong>Superficie Reativa (in oklab)</strong><code class="mono-metric">color-mix(in oklab, var(--brand-primary) 14%, transparent)</code></div>
+          </div>
+        </section>
+      </article>
 
-        document.querySelectorAll('[data-node-id]').forEach((btn) => {
-          btn.setAttribute('aria-selected', String(btn.dataset.nodeId === selectedId));
-        });
-      }
+      <article id="chapter-5" class="chapter-view" hidden aria-labelledby="ch5-h1">
+        <header class="card">
+          <div class="flex-row">
+            <div>
+              <h1 id="ch5-h1">Elevacao Fisica em 4 Estagios &amp; Luz Zenital</h1>
+              <p class="muted">Combine umbra de contato, penumbra com spread negativo e chanfro superior de 1px sem halos neon.</p>
+            </div>
+            <div class="flex-cluster">
+              <label class="muted mono-metric control-inline">Borda 1px: <strong id="spec-val">100%</strong><input id="spec-slider" type="range" min="0" max="160" value="100" /></label>
+              <label class="muted mono-metric control-inline">Projecao Y: <strong id="shadow-y-val">1.0x</strong><input id="shadow-y-slider" type="range" min="50" max="200" value="100" /></label>
+            </div>
+          </div>
+        </header>
+        <section class="ram-grid" aria-label="Quatro niveis fisicos de elevacao">
+          <article class="inset-well"><h3>0. Poco Inset</h3><code class="mono-metric">--shadow-inset</code><p class="muted">Trilhos, switches e :active</p></article>
+          <article class="card" style="box-shadow: var(--shadow-elevation-1);"><h3>1. Nivel Repouso</h3><code class="mono-metric">--shadow-elevation-1</code><p class="muted">Teclas e chips tateis</p></article>
+          <article class="card" style="box-shadow: var(--shadow-elevation-2);"><h3>2. Nivel Flutuante</h3><code class="mono-metric">--shadow-elevation-2</code><p class="muted">Cards e paineis em foco</p></article>
+          <article class="card" style="box-shadow: var(--shadow-elevation-3);"><h3>3. Nivel Modal</h3><code class="mono-metric">--shadow-elevation-3</code><p class="muted">Dialogs e barras fixas</p></article>
+        </section>
+        <section class="bento-12" aria-label="Comparativo box-shadow vs filter drop-shadow">
+          <article class="card span-6">
+            <h2>box-shadow (Caixa Retangular)</h2>
+            <svg role="img" width="48" height="48" viewBox="0 0 24 24" style="box-shadow: var(--shadow-elevation-2);" aria-label="Estrela com box-shadow"><use href="#ic-star"/></svg>
+          </article>
+          <article class="card span-6">
+            <h2>filter: drop-shadow() (Contorno Alfa Vetorial)</h2>
+            <svg role="img" width="48" height="48" viewBox="0 0 24 24" style="filter: drop-shadow(0 4px 6px oklch(0.18 0.02 255 / 0.30));" aria-label="Estrela com filter drop-shadow"><use href="#ic-star"/></svg>
+          </article>
+        </section>
+      </article>
 
-      function renderNodeGrid(containerId, emptyId, nodes, query) {
-        const container = document.getElementById(containerId);
-        const emptyEl = document.getElementById(emptyId);
-        const q = query.trim().toLowerCase();
-        const filtered = nodes.filter((n) =>
-          !q || [n.title, n.badge, n.summary, ...n.specs.flat()].join(' ').toLowerCase().includes(q)
-        );
-        const mainEl = document.getElementById('main-content');
-        const liveEl = document.getElementById('ui-live-status');
-        if (mainEl && liveEl) {
-          const state = filtered.length === 0 ? 'empty' : (q ? 'loading' : 'idle');
-          mainEl.setAttribute('data-state', filtered.length === 0 ? 'empty' : 'idle');
-          liveEl.textContent = filtered.length === 0 ? 'Nenhum item encontrado' : filtered.length + ' itens exibidos';
-          void state;
-        }
-        container.replaceChildren();
-        emptyEl.hidden = filtered.length > 0;
-        filtered.forEach((node) => {
-          const btn = makeEl('button', 'ui-card interactive');
-          btn.type = 'button';
-          btn.dataset.nodeId = node.id;
-          btn.setAttribute('aria-selected', String(node.id === selectedId));
+      <article id="chapter-6" class="chapter-view" hidden aria-labelledby="ch6-h1">
+        <header class="card">
+          <div class="flex-row">
+            <div><h1 id="ch6-h1">Hardware Tatil, Acabamento Fosco &amp; 5 Pseudoclasses</h1><p class="muted">Micro-textura fractalNoise, detente fisico em :active e validacao nativa sem boilerplate.</p></div>
+            <label class="muted mono-metric control-inline">Textura Fosca: <strong id="grain-val">1.2%</strong><input id="grain-slider" type="range" min="0" max="60" value="12" /></label>
+          </div>
+          <div class="ram-grid">
+            <button type="button" class="tactile-key btn-primary-bevel">01 · Primario Chanfrado</button>
+            <button type="button" class="tactile-key">02 · Fosco Mineral</button>
+            <button id="demo-latch-btn" type="button" class="tactile-key btn-latch" aria-pressed="true"><span class="lum-bead"></span><span>03 · Trava em Recesso</span></button>
+            <div class="segmented-well" role="group" aria-label="Frequencia de amostragem">
+              <button type="button" class="seg-btn" data-rate-btn="1x" aria-pressed="true">1x</button>
+              <button type="button" class="seg-btn" data-rate-btn="2x" aria-pressed="false">2x</button>
+              <button type="button" class="seg-btn" data-rate-btn="4x" aria-pressed="false">4x</button>
+            </div>
+          </div>
+        </header>
+        <section class="card" aria-label="Matriz das 5 pseudoclasses">
+          <h2>Matriz de Estados &amp; Pseudoclasses</h2>
+          <div class="ram-grid">
+            <button type="button" class="tactile-key">Default</button>
+            <button type="button" class="tactile-key state-hover">:hover</button>
+            <button type="button" class="tactile-key state-focus">:focus-visible</button>
+            <button type="button" class="tactile-key state-active">:active</button>
+            <button type="button" class="tactile-key" disabled>:disabled</button>
+          </div>
+          <label class="muted control-stack"><span>Codigo de lote com <code>:user-invalid</code> (formato AA-123):</span>
+            <input id="validation-demo-input" class="demo-input" type="text" required minlength="4" pattern="[A-Z]{2}-[0-9]{3}" placeholder="Ex: SS-140" />
+          </label>
+        </section>
+      </article>
 
-          const head = makeEl('div', '');
-          head.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:0.5rem;';
-          head.appendChild(makeEl('span', 'mono-tag ' + node.tone, node.badge));
-          head.appendChild(makeEl('span', 'mono-tag', node.version));
+      <article id="chapter-7" class="chapter-view" hidden aria-labelledby="ch7-h1">
+        <header class="card">
+          <div class="flex-row">
+            <div><h1 id="ch7-h1">@container Arrastavel, Flexbox min-w-0, subgrid &amp; Menus 0fr</h1><p class="muted">Isole <code>container-type</code> do elemento <code>subgrid</code> e use <code>min-inline-size: 0</code> em linhas flex.</p></div>
+            <div class="segmented-well" role="group" aria-label="Larguras predefinidas do container">
+              <button type="button" class="seg-btn" data-cq-preset="260" aria-pressed="false">260px</button>
+              <button type="button" class="seg-btn" data-cq-preset="440" aria-pressed="false">440px</button>
+              <button type="button" class="seg-btn" data-cq-preset="680" aria-pressed="true">680px</button>
+            </div>
+          </div>
+        </header>
+        <section class="inset-well" aria-label="Playground redimensionavel @container">
+          <div class="flex-row">
+            <span id="cq-width-label" class="engraved-pill">680px · Estagio 3: Expandido</span>
+            <button id="cq-drag-handle" type="button" class="tactile-key" aria-label="Arrastar ou usar setas para redimensionar container">Arrastar / Setas &lt;- -&gt;</button>
+          </div>
+          <article id="cq-host" class="card cq-host">
+            <div class="cq-grid">
+              <div class="stack-sm">
+                <div class="flex-row"><h2 class="truncate-safe">Volume NVMe · bloco-04</h2><button type="button" class="quiet-btn cq-extra">Snapshot</button></div>
+                <div class="cq-metrics">
+                  <span class="engraved-pill">Leitura 4.2 GB/s</span>
+                  <span class="engraved-pill">IOPS 92k</span>
+                  <span class="engraved-pill">Uso 68%</span>
+                </div>
+              </div>
+              <p class="muted"><code>container: moduleBox / inline-size</code> reordena metricas sem consultar a largura global da tela.</p>
+            </div>
+          </article>
+        </section>
+        <section class="ram-grid" aria-label="Demonstracao de subgrid e menu 0fr">
+          <article id="accordion-demo" class="card">
+            <h2>Menu Expansivel &amp; Lista 0fr -&gt; 1fr</h2>
+            <div class="accordion-item accordion-card" data-open="true">
+              <button type="button" class="quiet-btn accordion-trigger" aria-expanded="true">
+                <span>Arquitetura Sidebar Rail (264px &lt;-&gt; 72px)</span>
+                <svg class="acc-chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-chevron"/></svg>
+              </button>
+              <div class="accordion-panel"><div class="accordion-inner"><p class="muted">Coluna CSS animada via <code>grid-template-columns</code> e tooltips flutuantes fora do trilho.</p></div></div>
+            </div>
+            <div class="accordion-item accordion-card" data-open="false">
+              <button type="button" class="quiet-btn accordion-trigger" aria-expanded="false">
+                <span>Seletor Base-Select Top-Layer</span>
+                <svg class="acc-chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-chevron"/></svg>
+              </button>
+              <div class="accordion-panel"><div class="accordion-inner"><p class="muted">Estiliza <code>::picker(select)</code> com <code>@starting-style</code> mantendo fallback nativo seguro.</p></div></div>
+            </div>
+            <div class="accordion-item accordion-card" data-open="false">
+              <button type="button" class="quiet-btn accordion-trigger" aria-expanded="false">
+                <span>Listas com Acoes :focus-within</span>
+                <svg class="acc-chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-chevron"/></svg>
+              </button>
+              <div class="accordion-panel"><div class="accordion-inner"><p class="muted">Revela controles no hover, foco de teclado e toque sem <code>overflow: hidden</code>.</p></div></div>
+            </div>
+          </article>
+          <article class="card">
+            <h2>Flexbox min-inline-size: 0 + subgrid</h2>
+            <p class="truncate-safe muted">Texto longo com reticencias garantidas dentro de coluna flex sem estourar o cartao pai.</p>
+          </article>
+        </section>
+      </article>
 
-          btn.appendChild(head);
-          btn.appendChild(makeEl('h3', '', node.title));
-          btn.appendChild(makeEl('p', 'muted-sub', node.summary));
-          btn.addEventListener('click', () => renderInspector(node));
-          container.appendChild(btn);
-        });
-      }
+      <footer class="card flex-row" aria-label="Paginacao de capitulos">
+        <button id="pager-prev" type="button" class="quiet-btn" disabled>&lt;- Anterior</button>
+        <span id="pager-indicator" class="engraved-pill">Cap. 1 / 7</span>
+        <button id="pager-next" type="button" class="tactile-key">Proximo -&gt;</button>
+      </footer>
+    </main>
+  </section>
 
-      function renderAll(query) {
-        renderNodeGrid('asis-grid', 'asis-empty', AS_IS_NODES, query);
-        renderNodeGrid('tobe-grid', 'tobe-empty', TO_BE_NODES, query);
-      }
+  <nav class="mobile-bottom-bar" aria-label="Acesso rapido mobile">
+    <button type="button" class="mobile-tab-btn" data-chapter="1" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-layers"/></svg><span>1. Estilos</span></button>
+    <button type="button" class="mobile-tab-btn" data-chapter="2"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-check"/></svg><span>2. Slop</span></button>
+    <button type="button" class="mobile-tab-btn" data-chapter="3"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-mobile"/></svg><span>3. Mobile</span></button>
+    <button type="button" class="mobile-tab-btn" data-chapter="5"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-star"/></svg><span>5. Luz</span></button>
+    <button type="button" class="mobile-tab-btn" data-chapter="7"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-grid"/></svg><span>7. Box</span></button>
+  </nav>
 
-      function switchView(target) {
-        activeView = target;
-        ['asis', 'tobe', 'styles'].forEach((v) => {
-          document.getElementById('view-' + v).hidden = v !== target;
-        });
-        document.querySelectorAll('[data-view-target]').forEach((btn) => {
-          if (btn.dataset.viewTarget === target) btn.setAttribute('aria-current', 'page');
-          else btn.removeAttribute('aria-current');
-        });
-        document.getElementById('breadcrumb-current').textContent = VIEW_TITLES[target];
-        if (target === 'asis') renderInspector(AS_IS_NODES[0]);
-        if (target === 'tobe') renderInspector(TO_BE_NODES[0]);
-      }
+  <dialog id="token-export-modal" aria-labelledby="export-title">
+    <header class="flex-row">
+      <h2 id="export-title">Exportar Tokens v1.4</h2>
+      <div class="segmented-well" role="group" aria-label="Formato de exportacao">
+        <button type="button" class="seg-btn" data-export-fmt="css" aria-pressed="true">CSS :root</button>
+        <button type="button" class="seg-btn" data-export-fmt="tailwind" aria-pressed="false">Tailwind @theme</button>
+      </div>
+    </header>
+    <textarea id="token-export-code" class="export-area" readonly aria-label="Codigo CSS de tokens gerados"></textarea>
+    <footer class="flex-row">
+      <button id="close-export-btn" type="button" class="quiet-btn">Fechar</button>
+      <button id="copy-export-btn" type="button" class="tactile-key btn-primary-bevel">Copiar Tokens</button>
+    </footer>
+  </dialog>
 
-      function initStyleLab() {
-        const bar = document.getElementById('style-chip-bar');
-        const stage = document.getElementById('style-lab-stage');
-        Object.entries(STYLE_PRESETS).forEach(([key, preset]) => {
-          const btn = makeEl('button', 'pill-btn', key.toUpperCase());
-          btn.type = 'button';
-          btn.setAttribute('aria-pressed', String(key === 'tactile'));
-          btn.addEventListener('click', () => {
-            stage.setAttribute('data-preview-style', key);
-            document.documentElement.setAttribute('data-style', key);
-            document.getElementById('lab-style-title').textContent = preset.title;
-            document.getElementById('lab-style-meta').textContent = preset.meta;
-            document.getElementById('lab-style-lighting').textContent = preset.lighting;
-            document.getElementById('lab-style-menu').textContent = preset.menu;
-            bar.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-          });
-          bar.appendChild(btn);
-        });
-      }
-
-      function syncThemeUi() {
-        const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-        const btn = document.getElementById('theme-toggle-btn');
-        btn.setAttribute('aria-pressed', String(theme === 'light'));
-        document.getElementById('theme-toggle-label').textContent = theme === 'light' ? 'Tema: Claro' : 'Tema: Escuro';
-      }
-
-      document.getElementById('theme-toggle-btn').addEventListener('click', () => {
-        const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', cur);
-        try {
-          localStorage.setItem('ss-atlas-theme', cur);
-        } catch (storageErr) {
-          console.debug('Theme persistence unavailable', storageErr);
-        }
-        syncThemeUi();
-      });
-
-      const collapseBtn = document.getElementById('sidebar-collapse-btn');
-      collapseBtn.addEventListener('click', () => {
-        const collapsed = document.documentElement.getAttribute('data-sidebar') === 'collapsed';
-        document.documentElement.setAttribute('data-sidebar', collapsed ? 'expanded' : 'collapsed');
-        collapseBtn.setAttribute('aria-expanded', String(collapsed));
-      });
-
-      document.querySelectorAll('[data-view-target]').forEach((btn) => {
-        btn.addEventListener('click', () => switchView(btn.dataset.viewTarget));
-      });
-
-      const filterInput = document.getElementById('node-filter-input');
-      filterInput.addEventListener('input', () => renderAll(filterInput.value));
-      document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-          e.preventDefault();
-          filterInput.focus();
-        }
-      });
-
-      syncThemeUi();
-      initStyleLab();
-      renderAll('');
-      renderInspector(AS_IS_NODES[0]);
-    })();
-  </script>
+  <p id="toast" class="toast" role="status" aria-live="polite"></p>
 </body>
 </html>

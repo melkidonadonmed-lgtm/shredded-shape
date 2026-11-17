@@ -1,10 +1,10 @@
 {
   "objective": "Closed-Loop 4-Stage Actor-Critic UI/UX Pipeline (Forensic Analyst -> Brand/Style Planner -> Clean ReAct Worker <-> Read-Only WCAG 2.2 OKLCH Judge) with <= 5 Active Rules per Node",
   "acceptance_criteria": [
-    "Stage 0 (ui-analyst): Inventory tokens, colors, fonts, icons, menus, spacing, contracts, stack, DevTools live telemetry, AI Slop score, and Before/After navigation diagram",
-    "Stage 1 (ui-planner): Calibrate brand OKLCH 60-30-10 (zero neon), select Style Archetype (Soft..Clinical), source Stitch/Figma/Fonts/3D assets, author DESIGN.md, and compile <=5-rule DAG without file collisions",
-    "Stage 2 (ui-worker): Implement clean Light/Dark UI with 3-layer light shadows, dark-mode specular rim/halo lighting, superior matte glass, real FSM, and Read-After-Write SHA-256 + tsc verification",
-    "Stage 3 (ui-judge): Run read-only WCAG 2.2 OKLCH contrast (FNR < 0.001), 48x48px touch, :focus-visible, DOM==Tab, anti-XSS, and anti-Slop checks; loop Self-Refine on REJECTED until PASSED"
+    "Stage 0 (ui-analyst): Inventory tokens, colors, fonts, icons, menus, spacing, contracts, stack, DevTools/REA telemetry, AI Slop score, and CLAREZA Before/After navigation diagram",
+    "Stage 1 (ui-planner): Calibrate brand OKLCH 60-30-10 (zero neon), select Style Archetype (Soft..Clinical) & Spatial Archetype (of 6), source Stitch/Figma/Fonts/3D assets, emit DESIGN.md blueprint, and compile <=5-rule DAG without file collisions",
+    "Stage 2 (ui-worker): Materialize DESIGN.md on disk and implement clean Light/Dark UI with 3-layer light shadows, dark-mode specular rim/halo lighting, superior matte glass, @container/subgrid, 4 Card Variants, real FSM, and Read-After-Write SHA-256 + tsc verification",
+    "Stage 3 (ui-judge): Run read-only WCAG 2.2 OKLCH contrast (FNR < 0.001), 4-Pillar Readiness (>= 90), 6-Dimension UI/UX (>= 85), 48x48px touch, :focus-visible, DOM==Tab, anti-XSS, and anti-Slop checks; loop Self-Refine on REJECTED up to max_refinement_rounds=3 before HITL escalation"
   ],
   "tasks": [
     {
@@ -43,7 +43,7 @@
         "skill": "ui-clean-worker",
         "max_rules_per_node": 5,
         "workspace": "share",
-        "max_steps": 5
+        "max_steps": 16
       }
     },
     {
@@ -58,6 +58,7 @@
         "max_rules_per_node": 5,
         "read_only": true,
         "self_refine_target": "stage2_ui_worker",
+        "max_refinement_rounds": 3,
         "fnr_target": 0.001
       }
     }

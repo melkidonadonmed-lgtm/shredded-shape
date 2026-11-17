@@ -1,50 +1,62 @@
 ---
 name: ui-brand-ux-planner
-description: "Use when diagnosing product scope, brand identity, OKLCH 60-30-10 palette, style archetype (Soft, Hi-Tech, Tactile, Elevated, Retro, Vintage, Clinical), external Stitch/Figma/Fonts/3D assets, DESIGN.md, and bounded UI DAGs (<=5 rules/node). Do NOT use for live DevTools audits or writing code."
-compatibility: "Antigravity 2.0, Figma MCP, agent-browser, Python 3.12+"
+description: "Use when planning brand identity, 5-plane OKLCH 60-30-10 tokens, 7 style archetypes (Soft, Hi-Tech, Tactile, Elevated, Retro, Vintage, Clinical), 6 Spatial Archetypes, Google Stitch spacing, Figma MCP, Google Fonts typography, verified 24x24 Lucide/Material SVGs, 3D Unity assets, DESIGN.md blueprints, and <=5-rule DAGs. Do NOT use for live Chrome DevTools audits or writing UI code."
+license: MIT
+compatibility: "Antigravity 2.0 / Claude Code / Gemini CLI with Python 3.12+ (uv) and Pydantic v2"
 metadata:
-  author: "Shredded-Shape"
-  version: "1.0.0"
-  updated_at: "2026-11-16"
-  category: "Brand Direction, UX Architecture, Asset Orchestration & DAG Planning"
-  tags: ["ui-brand-ux-planner", "design-md", "branding", "oklch", "stitch", "figma", "google-fonts", "threejs", "unity", "soft", "hi-tech", "tactile", "elevated", "retro", "vintage", "dag-planejador"]
+  author: shredded-shape
+  version: "1.4.0"
+  updated_at: "2026-11-17"
+  category: frontend-planning
+  tags:
+    - design-md
+    - oklch-palette
+    - google-fonts
+    - lucide-svg
+    - stitch-figma
+    - dag-compiler
 ---
 
-# `ui-brand-ux-planner` — Brand, Style Archetypes, Asset Pipeline & DAG Planner
+# Brand Strategy, Optical Token & DAG Planner (`ui-brand-ux-planner`)
 
-## 1. Overview & Scope
+## Overview
+Serve as the **strictly read-only** Stage 1 Architect. Translate business goals, target personas, and Stage 0 `ui-frontend-analyst` CLAREZA findings into an unambiguous 8-section `DESIGN.md` blueprint, verified asset specs, and a bounded `<= 5`-rule DAG ready for `ui-worker`.
 
-Translates product scope (or `ui-frontend-analyst` findings) into a cohesive brand identity, intuitive zero-verbiage UX hierarchy, `<project_root>/DESIGN.md`, and a closed-schema execution DAG (`ui_execution_dag.json` with `<= 5` rules/node, CoT/ToT, and zero parallel file collisions).
+## Inputs
+- Project goal, brand positioning, domain constraints (`EHR/PEP` clinical, `@xyflow/react` cockpit, SaaS, editorial, etc.), and optional Stage 0 CLAREZA diff.
+- Target files/directories (`greenfield` vs `refactor`).
 
-- **When NOT to Use:** Do NOT use for inspecting live existing apps (`ui-frontend-analyst`), editing `.tsx`/`.css` files (`ui-clean-worker`), running final WCAG 2.2 Judge audits (`ui-quality-judge`), or backend API specs.
+## Procedure
+Execute in causal order without modifying target source files (load only the `references/*.md` files needed):
 
-## 2. Inputs & Prerequisites
+1. **Phase 1 — Brand, Domain & Ergonomic Dials Diagnosis:**
+   - Select 1 of the 7 Style Archetypes + 1 of the 6 Spatial Archetypes (`bento_12_col`, `workbench_split_view`, `command_center_grid`, `editorial_65ch`, `spatial_hud_dock`, `vector_a4_print`) + `site-kind`, calibrating Dials in [`references/style_archetypes_tokens_and_menus.md`](references/style_archetypes_tokens_and_menus.md).
+   - Consult [`references/intuitive_ux_rsc_and_agentic_ui.md`](references/intuitive_ux_rsc_and_agentic_ui.md) for RSC architecture, Next.js 15+ async `params`, Mobile-First adaptive postures, and `DOM == Tab Order`.
 
-- **`project_brief_or_root` (required) & `analyst_report` (optional):** Product purpose, audience, stack preference, or existing repo root.
-- **Compiler & References:**
-  - [scripts/ui_dag_compiler.py](scripts/ui_dag_compiler.py) (`--scope <path> --style <archetype> --json`)
-  - [references/style_archetypes_tokens_and_menus.md](references/style_archetypes_tokens_and_menus.md)
-  - [references/external_assets_stitch_figma_fonts_3d.md](references/external_assets_stitch_figma_fonts_3d.md)
-  - [references/intuitive_ux_rsc_and_agentic_ui.md](references/intuitive_ux_rsc_and_agentic_ui.md)
+2. **Phase 2 — Perceptual 5-Plane `OKLCH 60-30-10` Polarity Palette:**
+   - Lock Light & Dark `light-dark()` surfaces: `--bg-well`, 60% `--bg-canvas` (never `#000000`), `--bg-card`, `--bg-card-lit`, `--bg-key`, and 10% `--brand-primary` (`C <= 0.20`, hard cap `C > 0.22`; danger `15°..40°` `<= 0.24`; `color-mix(in oklab, ...)`).
+   - Specify Light 3-layer shadows (`-1px..-8px` negative spread + `drop-shadow <= 6px`) and Dark `--light-zenith` + stepped rim light. Ban blur blobs, confetti badges, dashed wireframes, and neon glows.
 
-## 3. Step-by-Step Procedure
+3. **Phase 3 — Variable Typography, Stitch Spacing & Verified `24x24` SVG Catalog:**
+   - Lock Google Fonts variable `@font-face` (`font-optical-sizing: auto`, body `text-rendering: auto`, heading `optimizeLegibility`) and Stitch spacing ($\text{Inner} < \text{Pad} \le \text{Gap} < \text{Section}$) per [`references/external_assets_stitch_figma_fonts_3d.md`](references/external_assets_stitch_figma_fonts_3d.md).
+   - Choose ONE web SVG library (`Lucide`, `Material Symbols`, `Phosphor`, or `Fluent`) and copy canonical `24x24` `<symbol>` paths from [`references/design_md_and_plan_template.md`](references/design_md_and_plan_template.md).
 
-1. **Brand, Objective & `OKLCH 60-30-10`:** Calibrate hue ($H$) and restrained chroma ($C \le 0.20$, zero neon) to domain purpose, locking `light-dark()` pairs (`L = 0.16 -> 0.22 -> 0.27` dark elevation).
-2. **Select Token & Menu Style Archetype:** Pick `soft`, `hi-tech`, `tactile`, `elevated`, `retro`, `vintage`, or `clinical` plus `taste-skill` dials (`DESIGN_VARIANCE`, `MOTION_INTENSITY`, `VISUAL_DENSITY`).
-3. **Orchestrate External Assets & Tools:** Source palettes/concepts via **Google Stitch** (`agent-browser`), extract clean SVG icons/tokens via **Figma MCP**, download **Google Fonts** (`.woff2` variable Sans + Mono), and configure **3D (`Three.js` / `Unity Hub`)** only when requested by scope.
-4. **Intuitive Navigation & Stack Architecture:** Structure Single-DOM Adaptive Navigation (Bottom Bar <-> Collapsible `256px` Sidebar Rail), Next.js 15+ Server vs. Leaf `'use client'` boundaries, Tailwind v4 `@theme`, and ban tutorial text explaining obvious controls.
-5. **Compile `DESIGN.md` & Bounded DAG:** Run `ui_dag_compiler.py` (`<= 5` rules/node, ToT/CoT, `fallback_branch`, vertical route ownership) before dispatching `ui-clean-worker`.
+4. **Phase 4 — External Toolkits & 8-Section `DESIGN.md` Blueprint Emission:**
+   - Integrate `Google Stitch`, `Figma` MCP, `modern-web-guidance` (or offline L3 fallback), or `Unity`/`Three.js` budgets and emit the 8-section `DESIGN.md` blueprint + [`rules/audit_criteria.md`](rules/audit_criteria.md).
 
-## 4. Gotchas & Edge Cases
+5. **Phase 5 — Disjoint Bounded DAG Compilation:**
+   - Run the deterministic DAG compiler (`--json` stdout in read-only sandbox; optional `--out <dag.json>` outside sandbox):
+     - Plugin path: `python "$HOME/.gemini/config/plugins/shredded-shape/skills/ui-brand-ux-planner/scripts/ui_dag_compiler.py" <target> --style <archetype> --hue <deg> --mode <auto|greenfield|refactor> --json`
+     - Repo fallback: `uv run python skills/ui-brand-ux-planner/scripts/ui_dag_compiler.py <target> --style <archetype> --hue <deg> --mode <auto|greenfield|refactor> --json`
+   - Verify `owned_files == []` on read-only nodes, disjoint `owned_files` across parallel `ui-worker` nodes, and `<= 5` rules/node.
 
-- **Read-Only Planning Reservation:** Reserve cognitive budget for architecture, tokens, and DAG compilation — never write production `.tsx`/`.css` components directly.
-- **Zero-Verbiage Discipline:** Never pad dashboards with explanatory cards describing how to click buttons; let layout hierarchy guide action.
-- **Stop Criteria:** Emit `[UNVERIFIED]` if product scope is empty or requested external asset source is unreachable.
+## Gotchas
+- **Zero-Write Isolation:** Emit `DESIGN.md` verbatim for `ui-worker` to materialize; default to `--json` stdout in sandbox rather than writing inside read-only sessions.
+- **Canonical Style Slugs:** Pass `--style hi-tech` (compiler normalizes `hitech` alias) and pair with one of the 6 `SpatialArchetype` CLI slugs.
+- **No Unverified SVG Paths:** Copy verified `24x24` paths or mark `npx svgo` optimization explicitly.
 
-## 5. Output Schema & Validation Criteria
+## Output
+- Complete **8-Section `DESIGN.md` Blueprint** and compiled `UIExecutionDAG` JSON.
 
-Deliver `<project_root>/DESIGN.md` plus validated `ui_execution_dag.json` (`extra="forbid"`, `max_rules_per_node <= 5`, zero file collisions) complying with [rules/audit_criteria.md](rules/audit_criteria.md).
-
-## 6. User Communication Rule
-
-Always formulate all direct user-facing conversation, style recommendations, asset summaries, and deliverables in **Portuguese (Brazil / `pt-BR`)**, unless the user explicitly requests otherwise.
+## User Communication
+Present architectural choices, ergonomic dial tables, verified icon plans, and DAG phases to the user in **Portuguese (`pt-BR`)**, keeping `DESIGN.md` tokens and DAG schemas in Technical English.

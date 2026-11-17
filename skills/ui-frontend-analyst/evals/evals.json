@@ -7,8 +7,8 @@
       "should_trigger": true,
       "assertions": [
         "Runs scripts/frontend_inventory_and_slop_scanner.py with --json",
-        "Captures live computed telemetry via devtools_live_probe.js when live URL exists",
-        "Emits Current Navigation Mermaid diagram and Before vs. After refactoring table"
+        "Captures live computed telemetry via devtools_live_probe.js when live URL exists or REA inspect_analysis_view(detail='summary') on compiled bundles",
+        "Emits CLAREZA Current Navigation Mermaid diagram and Before vs. After refactoring table"
       ]
     },
     {

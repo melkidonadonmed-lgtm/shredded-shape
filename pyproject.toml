@@ -1,7 +1,8 @@
 [project]
 name = "shredded-shape"
-version = "1.0.0"
-description = "Shredded-Shape: Dedicated UI/UX Architecture, DevTools Forensic Analyst, Brand & Asset Planner, Clean Optical Worker, and WCAG 2.2 OKLCH Actor-Critic Judge."
+version = "1.4.0"
+license = "MIT"
+description = "Shredded-Shape: Dedicated UI/UX Architecture, DevTools Forensic Analyst, Brand & Asset Planner, Clean Optical Worker, and WCAG 2.2 OKLab Actor-Critic Judge."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -11,8 +12,16 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pytest>=8.0.0",
+    "pytest>=9.0.0",
+    "pytest-cov>=7.0.0",
+    "hypothesis>=6.100.0",
+    "ruff>=0.17.0",
+    "bandit>=1.9.0",
+    "pip-audit>=2.10.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

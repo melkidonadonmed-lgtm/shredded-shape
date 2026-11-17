@@ -5,7 +5,10 @@ subagent: true
 mainAgent: false
 model: inherit
 commandExecutionPolicy: sandbox
+inheritMcp: true
+inheritCustomizations: true
 max_steps: 8
+stop_condition: "DESIGN_AND_DAG_EMITTED"
 tools:
   - read_file
   - run_command

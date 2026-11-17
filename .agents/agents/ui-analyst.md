@@ -5,7 +5,10 @@ subagent: true
 mainAgent: false
 model: inherit
 commandExecutionPolicy: sandbox
+inheritMcp: true
+inheritCustomizations: true
 max_steps: 10
+stop_condition: "CLAREZA_REPORT_EMITTED"
 tools:
   - read_file
   - run_command

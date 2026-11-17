@@ -1,43 +1,56 @@
 ---
 name: clinical-minimalist-ui
-description: "Use this skill when designing or building clinical interfaces, electronic health records (EHR/PEP), A4 vector print sheets (.sus-grid), and medical calculators. Do NOT use for generic SaaS, e-commerce, or non-clinical dashboards."
+description: "Use when designing, planning, or building clinical interfaces, electronic health records (EHR/PEP dashboards), A4 vector print sheets (.sus-grid), and medical calculators with WCAG AAA precision and zero AI slop. Do NOT use for generic SaaS, e-commerce, or non-clinical dashboards."
+license: MIT
+compatibility: "Antigravity 2.0 / Claude Code / Gemini CLI with Python 3.12+ (uv) and Modern CSS"
 metadata:
-  author: "Franklin"
-  version: "5.0.0"
-  updated_at: "2026-11-16"
-  tags: ["clinical-minimalist-ui", "clinical-ui", "medtech", "ehr", "pep", "prontuario-eletronico", "interfaces-clinicas", "receituarios-laudos", "sus-grid", "a4", "calculadoras-medicas", "oklch", "tabular-nums"]
+  author: shredded-shape
+  version: "1.4.0"
+  updated_at: "2026-11-17"
+  category: domain-ui-pack
+  tags:
+    - clinical
+    - ehr
+    - pep
+    - ".sus-grid"
+    - medical-calculators
+    - wcag-aaa
+    - a4-print
 ---
 
-# `clinical-minimalist-ui` — Clinical Interfaces & Vector A4 Print Architecture
+# Clinical Minimalist UI & A4 Vector Print Pack (`clinical-minimalist-ui`)
 
-## 1. Overview & Scope
+## Overview
+Domain specialty skill enforcing clinical sterility, high-stakes **WCAG 2.2 AAA (`>= 7.0:1`)** legibility, **A4 `@page` `.sus-grid` millimeter-accurate print sheets**, and deterministic medical calculators across the 4-stage Actor-Critic workflow.
 
-Ergonomic and patient-safety UI architecture aligned with `rules/frontend-9-axes-guidelines.md` and `ui-brand-ux-planner` for EHR/PEP screens, prescriptions, ICU monitoring, deterministic medical calculators (`SOFA`, `CHA2DS2-VASc`, `CKD-EPI`), and 100% vector CSS Grid + SVG `@media print` A4 sheets (`210mm × 297mm` `.sus-grid`).
+## Inputs
+- Target EHR/PEP component, prescription/exam sheet, or clinical risk calculator scope.
+- Active Actor-Critic stage role (`ui-analyst`, `ui-planner`, `ui-worker`, or `ui-judge`).
 
-- **When NOT to Use:** Do not use for generic SaaS, fintech, crypto, e-commerce, or gaming UIs (`ui-brand-ux-planner`, `ui-clean-worker`, or `system-project-auditor`).
+## Procedure
+Respect strict **Stage Role Guards**: operate **read-only** when bound inside `ui-analyst`, `ui-planner`, or `ui-judge`; mutate source files **only** when invoked inside `ui-worker` or direct feature execution.
 
-## 2. Inputs & Prerequisites
+1. **Phase 1 — Clinical Polarity & `OKLCH` Safety Calibration:**
+   - Apply [`references/clinical_polarities_architecture.md`](references/clinical_polarities_architecture.md) and [`references/clinical_a4_tokens_guide.md`](references/clinical_a4_tokens_guide.md): Day Clinic Light (`OKLCH(0.985 0.006 240)`) + Night Shift Dark (`OKLCH(0.165 0.015 245)`, never `#000000`), enforcing `>= 7.0:1` WCAG AAA contrast on dosages, lab alerts, and patient identifiers.
+   - Constrain non-danger accents (`C <= 0.16`); restrict clinical red alerts (`15°..40°` hue) to `C <= 0.24`. Zero neon glows, blur blobs, or decorative slop.
 
-- **`clinical_context` (required) & `target_stack` (optional):** `outpatient_ehr` | `icu_night_shift` | `dosing_calculator` | `a4_prescription_sheet`; React/TS + Tailwind v4/CSS Variables or standalone HTML5/CSS3.
-- **Deterministic Math Mandate:** Delegate dosing, infusion, and clearance math to typed deterministic functions or `agy_deterministic_calc_suite` — never free-form LLM output.
+2. **Phase 2 — Typography, Single-Library SVGs & Clinical Data Clarity:**
+   - Use `font-variant-numeric: tabular-nums;` on all lab values, timestamps, and doses; set `text-rendering: auto; font-optical-sizing: auto;` on `body` (protects form INP latency) and `optimizeLegibility` strictly on `h1..h3`.
+   - Use a single clean SVG library (`Material Symbols` or `Lucide`, `24x24` crisp stroke vectors) for vitals/alerts; zero Unicode emojis or amateur circle-cloud SVGs.
 
-## 3. Step-by-Step Procedure
+3. **Phase 3 — A4 `.sus-grid` Vector Print Projection (`@media print`):**
+   - Implement `@page { size: A4; margin: 12mm; }` with `.sus-grid` hairline vector rules (`0.25mm`), forced Light high-contrast black-on-white print polarity (`color-adjust: exact`), zero `box-shadow`/`backdrop-filter` in print, and explicit `break-inside: avoid;` on prescription/signature blocks.
 
-Consult [references/clinical_polarities_architecture.md](references/clinical_polarities_architecture.md) and [references/clinical_a4_tokens_guide.md](references/clinical_a4_tokens_guide.md):
+4. **Phase 4 — Calculator & Verification Gate:**
+   - Isolate deterministic medical calculator logic (`<= 60` lines/function, unit-tested boundary validation) and verify via `ui-quality-judge` with `--wcag AAA --composite` before clinical release.
 
-1. **Clinical `OKLCH` Polarities & `[LOCK-02]` Elevation:** Apply `clinical-day` (`--surface-canvas` `L=0.97` to `--surface-card` `L=1.00`, WCAG AAA $\ge 14:1$) or `clinical-night` (`0.16 -> 0.21 -> 0.26`, zero `#000000`), 3-level shadows (`--shadow-elevation-1..3` + `--catch-light`), `--shadow-inset-sunken`, achromatic CTAs, 4 card variants, and contained alerts (`6px` dot / `2px` border + `--ink-primary`).
-2. **Logical Box, GPU Sharpness & Unbreakable Units:** Enforce logical CSS, `antialiased`, `font-synthesis: none`, zero fractional `scale()` on text, **zero emojis** (Lucide `stroke-width: 1.5..1.75` only), `tabular-nums`, and `anti-squish` (`white-space: nowrap; flex-shrink: 0`) on units (`mg/dL`, `mL/min/1.73m²`, `mEq/L`) with `>= 44x44px` targets.
-3. **Archetypes, `@container` & A4 `.sus-grid`:** Use *Workbench Split-View* or *Command Center* with `@container`, 3-layer nav, physiological range alerts (`role="alert" aria-live="assertive"`), and `@media print` stripping `.no-print`/`nav`/`aside` and shadows.
+## Gotchas
+- **Stage Role Isolation:** Never write files when invoked from read-only `ui-planner` or `ui-judge` personas; emit token specifications or `--wcag AAA` rejection findings only.
+- **Clinical Alert Red Exception:** True critical alerts use `15°..40°` hue with `C <= 0.24` (e.g. `#ef4444`); arbitrary magenta/cyan neons remain strictly forbidden.
+- **Print Ink Bleeding:** Leaving dark glass fills or Screen `box-shadow` active inside `@media print` ruins medical prescriptions.
 
-## 4. Gotchas & Edge Cases
+## Output
+- WCAG AAA compliant PEP/EHR layout, deterministic medical calculator UI, and pixel/millimeter-clean A4 `.sus-grid` print CSS verified by `ui_judge_gatekeeper.py --wcag AAA`.
 
-- **Defaults Over Menus:** Infer `clinical_context` directly (ICU defaults to `clinical-night`; prescriptions default to `clinical-day` + A4 `@media print`).
-- **Patient-Safety Stop Criteria:** Halt if deterministic formulas or physiological bounds are missing; never emit low-contrast colored alert text, UI emojis, or flat 1-layer shadows.
-
-## 5. Output Schema & Validation Criteria
-
-Deliver typed clinical components (`.tsx`/`.html`) with Real-State FSM, deterministic dosing helpers, and vector `@media print` A4 CSS validated against [rules/audit_criteria.md](rules/audit_criteria.md) and `ui-quality-judge` (`audit_tactile_ui.py` `Readiness >= 90.0`).
-
-## 6. User Communication Rule
-
-Always formulate all direct user-facing conversation, explanations, clarifying questions, status reports, and deliverables in Portuguese (Brazil / pt-BR), unless the user explicitly requests otherwise.
+## User Communication
+Keep CSS tokens, `.sus-grid` classes, and clinical formula docs in Technical English; explain ergonomic decisions, print checks, and AAA scorecards to the user in **Portuguese (`pt-BR`)**.

@@ -1,40 +1,39 @@
 {
   "skill_name": "clinical-minimalist-ui",
-  "version": "5.0.0",
   "evals": [
     {
-      "eval_id": "med-ui-001-ehr-a4-vector-sheet",
-      "prompt": "Crie um card de identificação de paciente e calculadora de clearance de creatinina para prontuário clínico (PEP) com impressão em folha A4 .sus-grid.",
+      "id": "CLIN-01",
+      "prompt": "Build an EHR PEP patient triage view with WCAG AAA dark/light contrast, tabular vitals, and an A4 .sus-grid prescription print sheet.",
       "should_trigger": true,
-      "expected_assertions": [
-        "Applies clinical-day high-contrast polarity (--surface-canvas, --surface-sunken, --surface-card) with zenith lighting (--catch-light), 3-level shadows (--shadow-elevation-1..3), and contained allergy indicators without blurry colored text",
-        "Applies anti-blur locks (antialiased, font-synthesis: none, zero fractional scale), zero emojis (Lucide stroke-width 1.5-1.75 only), and >= 44px targets with anti-squish (flex-shrink: 0; white-space: nowrap) protecting mg/dL and mL/min",
-        "Displays results and doses in monospace (IBM Plex Mono / JetBrains Mono) with font-variant-numeric: tabular-nums, delegates dosing math to typed deterministic functions, and includes vector @media print A4 (210mm x 297mm CSS Grid + SVG .sus-grid)"
+      "assertions": [
+        "Enforces WCAG AAA >= 7.0:1 contrast with OKLCH Day/Night polarities",
+        "Includes @page A4 .sus-grid vector print CSS with box-shadow: none",
+        "Applies tabular-nums and text-rendering: auto on body"
       ]
     },
     {
-      "eval_id": "med-ui-002-icu-night-shift-theme",
-      "prompt": "Configure a clinical-night dark theme for an ICU vasoactive infusion pump dashboard minimizing eye strain during overnight shifts.",
+      "id": "CLIN-02",
+      "prompt": "Create a medical creatinine clearance calculator modal for ICU clinicians with Night Shift dark mode and sterile unit validation.",
       "should_trigger": true,
-      "expected_assertions": [
-        "Applies clinical-night OKLCH polarity (--surface-canvas: oklch(0.16 0.015 255), --surface-card: oklch(0.21 0.018 255), --surface-elevated: oklch(0.26 0.020 255)) with specular zenith rim and achromatic primary CTAs",
-        "Uses contained semantic alerts (6px micro-dots or 2px border-inline-start) with high-contrast neutral ink, validates physiological ranges with role='alert', and verifies readiness via ui-quality-judge"
+      "assertions": [
+        "Routes into clinical-minimalist-ui calculator and polarity tokens",
+        "Prevents #000000 and neon slop while keeping 48x48px coarse targets"
       ]
     },
     {
-      "eval_id": "med-ui-003-negative-generic-fintech-saas",
-      "prompt": "Audite por completo a governança, arquitetura e telas de um dashboard financeiro de criptomoedas.",
+      "id": "CLIN-03",
+      "prompt": "Design a playful e-commerce sneaker drop landing page with animated parallax hero banners and pastel 3D badges.",
       "should_trigger": false,
-      "expected_assertions": [
-        "Does not trigger clinical-minimalist-ui for non-healthcare crypto/fintech dashboards; delegates to ui-frontend-analyst or ui-brand-ux-planner"
+      "assertions": [
+        "Does not trigger clinical-minimalist-ui for non-clinical retail storefronts"
       ]
     },
     {
-      "eval_id": "med-ui-004-negative-ecommerce-landing",
-      "prompt": "Build an e-commerce sneaker checkout flow with Next.js App Router and Tailwind v4 cards.",
+      "id": "CLIN-04",
+      "prompt": "Build a generic SaaS billing settings table with Stripe invoice downloads and dark gradient pricing tiers.",
       "should_trigger": false,
-      "expected_assertions": [
-        "Does not trigger clinical-minimalist-ui for generic e-commerce storefronts; routes to ui-clean-worker"
+      "assertions": [
+        "Skips clinical domain pack in favor of ui-brand-ux-planner and ui-clean-worker"
       ]
     }
   ]

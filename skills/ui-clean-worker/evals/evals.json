@@ -6,7 +6,7 @@
       "prompt": "Implement the AppShell and MetricCard components in React 19 and Tailwind v4 @theme from DESIGN.md with 3-layer light shadows, subtle dark-mode rim illumination without neon, superior frosted matte topbar, and run RAW SHA-256 + tsc verification.",
       "should_trigger": true,
       "assertions": [
-        "Implements dual polarity tokens, matte frosted surface, and dark rim lighting",
+        "Materializes DESIGN.md and implements dual polarity tokens, @container/subgrid, 4 Card Variants, matte frosted surface, and dark rim lighting",
         "Executes scripts/verify_raw_frontend.py with SHA-256 checksum verification"
       ]
     },

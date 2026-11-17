@@ -1,22 +1,67 @@
-# Clinical Polarities & Vector A4 Print Architecture — Clinical Minimalist UI
+# Clinical Polarities, Sticky Safety Header & Deterministic Calculators
 
-Detailed ergonomic and token specification consumed by `clinical-minimalist-ui`, complementing `clinical_a4_tokens_guide.md` and `ui-brand-ux-planner`.
+Clinical interfaces serve clinicians across bright ward fluorescence (`clinical-day`) and dark ICU shifts (`clinical-night`). Every control preserves `>= 7.0:1` WCAG AAA contrast and bounded medical math.
 
-## 1. Clinical `OKLCH` Polarities, Zenithal Light & 4 Card Variants (Axes 3–5 & 7)
+## 1. Dual Clinical Polarity Calibration (`WCAG AAA >= 7.0:1`)
+| Token | `clinical-day` | `clinical-night` (`!= #000000`) | Clinical Rationale |
+| :--- | :--- | :--- | :--- |
+| `--bg-well` | `oklch(0.945 0.006 245)` | `oklch(0.120 0.012 250)` | Recessed input & lab badge wells without border clutter. |
+| `--bg-canvas` | `oklch(0.985 0.005 245)` | `oklch(0.155 0.014 250)` | Paper-grade matte surface free of OLED black smearing. |
+| `--bg-card` | `oklch(1.000 0.000 0)` | `oklch(0.205 0.017 250)` | Anodized order/prescription containers (`L_card > L_canvas`). |
+| `--bg-card-lit` | `oklch(1.000 0.000 0)` | `oklch(0.245 0.020 250)` | Focused order cards & active clinical warnings. |
+| `--ink-primary` | `oklch(0.170 0.020 255)` | `oklch(0.960 0.005 245)` | Guarantees `> 12:1` primary legibility for doses and IDs. |
+| `--ink-muted` | `oklch(0.375 0.018 255)` | `oklch(0.750 0.014 250)` | Guarantees `>= 7.0:1` timestamps, ICD codes, and units. |
+| `--status-danger` | `oklch(0.500 0.210 25)` | `oklch(0.700 0.195 25)` | Semantic clinical alert (`15°..40°`, `C <= 0.24`), zero magenta/cyan neon. |
 
-- **Outpatient Daytime & Print (`[data-theme="clinical-day"]`):** `--surface-canvas: oklch(0.97 0.005 245)`; `--surface-sunken: oklch(0.95 0.006 245)`; `--surface-card: oklch(1 0 0)`; `--ink-primary: oklch(0.18 0.02 255)` (WCAG AAA contrast $\ge 14:1$).
-- **Night Shift / ICU / Diagnostics (`[data-theme="clinical-night"]`):** Progressive lightness $L$ elevation (zero pure black anti-OLED smearing): `--surface-canvas: oklch(0.16 0.015 255)`; `--surface-card: oklch(0.21 0.018 255)`; `--surface-elevated: oklch(0.26 0.02 255)`; `--ink-primary: oklch(0.96 0.005 245)`.
-- **Zenithal Lighting & Sunken Recess (`[LOCK-02]`):** Top Catch-Light (`inset 0 1px 0 0`) + `--shadow-elevation-1..3` / `--shadow-layer-sm/md/lg`; vital-sign and prescription inputs styled with `--surface-sunken` + `--shadow-inset-sunken`.
-- **Achromatic Accent, 4 Variants & Contained Semantics:** Achromatic primary CTA (`oklch(0.18 0.02 255)` / `oklch(0.97 0.005 245)`); *Elevated*, *Outlined*, *Filled/Subtle*, and *Interactive* cards; clinical alerts via `6px` micro-dot, `border-inline-start: 2px solid`, or translucent `color-mix(in oklab, ...)` badge keeping `--ink-primary` text.
+## 2. 3-Click Patient Safety Banner & Sticky Header
+- Anchor a compact sticky `<header>` displaying Patient Full Name, DOB, Allergies (`role="status"`), and Primary Identifier (`tabular-nums`) within zero scrolling hops.
+- Every primary workflow (`Vitals -> Prescription -> Print A4`) must complete in `<= 3` clicks without hidden drawer traps or `outline: none`.
 
-## 2. Logical Box Model, GPU Sharpness, `tabular-nums` & Anti-Squish Shielding (Axes 1–2)
+## 3. Deterministic Medical Calculator Pattern (Bounded FSM + `aria-live`)
+Isolate physiological dose equations as pure functions (`<= 60` lines) with explicit physiological bounds rejecting impossible inputs before rendering results:
+```tsx
+"use client";
+import { useState } from "react";
 
-- Logical properties (`inline-size`, `padding-inline`, `margin-block`), `display: flow-root`, `gap`; `-webkit-font-smoothing: antialiased`, `text-rendering: optimizeLegibility`, `font-synthesis: none`, `max-inline-size: 65ch`; zero fractional `scale()` (use `translateY(-1px)` hover / `translateY(0)` active).
-- **Zero Emojis:** Exclusively **Lucide** vector icons (`stroke-width: 1.75`) or monospace markers.
-- **`tabular-nums` & Unbreakable Units:** `JetBrains Mono` / `IBM Plex Mono` with `tabular-nums` for vital signs, `SOFA`/`CHA2DS2-VASc`/`CKD-EPI`, SIGTAP/ICD-10 codes, and dosages; clinical units (`mg/dL`, `mL/min/1.73m²`, `mcg/kg/min`, `mEq/L`) guarded with `white-space: nowrap; flex-shrink: 0` and touch targets $\ge 44 \times 44\text{px}$.
+type CalcState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "success"; crClMlMin: number };
 
-## 3. Clinical Archetypes, `@container` & Vector A4 Sheet (Axes 6 & 8)
+export function computeCockcroftGault(age: number, weightKg: number, scrMgDl: number, female: boolean): CalcState {
+  if (!Number.isFinite(age) || age < 18 || age > 120) return { status: "error", message: "Age out of range (18-120 yr)." };
+  if (!Number.isFinite(weightKg) || weightKg < 25 || weightKg > 300) return { status: "error", message: "Weight out of range (25-300 kg)." };
+  if (!Number.isFinite(scrMgDl) || scrMgDl < 0.2 || scrMgDl > 20) return { status: "error", message: "Serum Cr out of range (0.2-20 mg/dL)." };
+  const raw = ((140 - age) * weightKg) / (72 * scrMgDl);
+  const adjusted = Number((female ? raw * 0.85 : raw).toFixed(1));
+  return { status: "success", crClMlMin: adjusted };
+}
 
-- *Workbench Split-View* or *Command Center* using `container-type: inline-size` + `@container`.
-- 3-Layer Navigation: Global (`<nav aria-label="Primary clinical menu">`), Local (`Chart sections`), and Breadcrumbs (`>= 3` levels).
-- **Vector A4 Print Sheet (`210mm × 297mm` `.sus-grid`):** 100% vector CSS Grid and SVG; on screen `--surface-canvas` + `--shadow-elevation-2`; inside `@media print` hide `.no-print`/`nav`/`aside` and strip all shadows.
+export function RenalClearanceWidget() {
+  const [state, setState] = useState<CalcState>({ status: "idle" });
+  const handleCalculate = (fd: FormData) => {
+    const next = computeCockcroftGault(
+      Number(fd.get("age")), Number(fd.get("weight")), Number(fd.get("scr")), fd.get("sex") === "F",
+    );
+    setState(next);
+  };
+  return (
+    <section aria-labelledby="crcl-title" className="surface-card">
+      <h2 id="crcl-title">Creatinine Clearance (Cockcroft-Gault)</h2>
+      <form action={handleCalculate} className="ram-grid">
+        <label className="clinical-field"><span>Age (yr)</span><input name="age" type="number" min={18} max={120} required className="clinical-input" /></label>
+        <label className="clinical-field"><span>Weight (kg)</span><input name="weight" type="number" step="0.1" min={25} max={300} required className="clinical-input" /></label>
+        <label className="clinical-field"><span>Serum Cr (mg/dL)</span><input name="scr" type="number" step="0.01" min={0.2} max={20} required className="clinical-input" /></label>
+        <label className="clinical-field"><span>Sex</span><select name="sex" className="clinical-input"><option value="M">Male</option><option value="F">Female</option></select></label>
+        <button type="submit" className="tactile-key">Calculate CrCl</button>
+      </form>
+      <output aria-live="polite" data-state={state.status} className="clinical-unit">
+        {state.status === "idle" && "Awaiting validated vitals."}
+        {state.status === "error" && state.message}
+        {state.status === "success" && `${state.crClMlMin} mL/min`}
+      </output>
+    </section>
+  );
+}
+```
+- **Print Rule:** Always test the `.sus-grid` sheet with `ui_judge_gatekeeper.py <target> --wcag AAA --composite --json` prior to handoff.

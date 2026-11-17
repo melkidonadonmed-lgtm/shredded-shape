@@ -1,11 +1,8 @@
-# Clinical `OKLCH` Tokens, Deterministic Calculators & Vector A4 Print Sheet Guide (`v5.0.0`)
+# Clinical `OKLCH` Tokens, AAA Forms & Vector A4 `.sus-grid` Guide
 
-Tier-3 implementation reference for `clinical-minimalist-ui`, aligned with the **9-Axis SSOT** for Perceptual `OKLCH` + `light-dark()`, Zenithal Light (`90°–120°`), Multi-Layer Shadows without `!important` (via `@layer`), and Vector A4 Sheets.
-
----
+Tier-3 implementation reference for `clinical-minimalist-ui`, enforcing **WCAG 2.2 AAA (`>= 7.0:1`)**, zero screen shadows in print, tabular dosages, and millimeter `.sus-grid` sheets.
 
 ## 1. Clinical Semantic `OKLCH` Tokens (`globals.css`)
-
 ```css
 @layer reset, tokens, base, layouts, components, print;
 
@@ -13,69 +10,57 @@ Tier-3 implementation reference for `clinical-minimalist-ui`, aligned with the *
   html, body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
+    text-rendering: auto; /* Protects EHR form INP responsiveness */
     font-optical-sizing: auto;
     font-synthesis: none;
   }
+  h1, h2, h3 { text-rendering: optimizeLegibility; }
 }
 
 @layer tokens {
   :root {
     color-scheme: light dark;
+    --bg-well: light-dark(oklch(0.945 0.006 245), oklch(0.120 0.012 250));
+    --bg-canvas: light-dark(oklch(0.985 0.005 245), oklch(0.155 0.014 250));
+    --bg-card: light-dark(oklch(1.000 0.000 0), oklch(0.205 0.017 250));
+    --bg-card-lit: light-dark(oklch(1.000 0.000 0), oklch(0.245 0.020 250));
+    --bg-key: light-dark(oklch(0.992 0.002 245), oklch(0.275 0.022 250));
+    --surface-canvas: var(--bg-canvas);
+    --surface-sunken: var(--bg-well);
+    --surface-card: var(--bg-card);
+    --surface-elevated: var(--bg-card-lit);
 
-    --surface-canvas: light-dark(oklch(0.97 0.005 245), oklch(0.16 0.015 255));
-    --surface-sunken: light-dark(oklch(0.95 0.006 245), oklch(0.13 0.015 255));
-    --surface-card: light-dark(oklch(1 0 0), oklch(0.21 0.018 255));
-    --surface-elevated: light-dark(oklch(1 0 0), oklch(0.26 0.020 255));
-    --surface-glass: light-dark(oklch(1 0 0 / 0.84), oklch(0.21 0.018 255 / 0.82));
+    --ink-primary: light-dark(oklch(0.170 0.020 255), oklch(0.960 0.005 245));
+    --ink-secondary: light-dark(oklch(0.320 0.020 255), oklch(0.840 0.012 250));
+    --ink-muted: light-dark(oklch(0.375 0.018 255), oklch(0.750 0.014 250));
+    --ink-on-key: var(--ink-primary);
 
-    --ink-primary: light-dark(oklch(0.18 0.02 255), oklch(0.96 0.005 245));
-    --ink-secondary: light-dark(oklch(0.38 0.02 255), oklch(0.82 0.012 250));
-    --ink-muted: light-dark(oklch(0.52 0.02 255), oklch(0.68 0.015 250));
+    --status-ok: oklch(0.56 0.14 162);
+    --status-warn: oklch(0.64 0.15 70);
+    --status-danger: oklch(0.56 0.21 25);
 
-    --cta-bg: light-dark(oklch(0.18 0.02 255), oklch(0.97 0.005 245));
-    --cta-ink: light-dark(oklch(0.97 0.005 245), oklch(0.18 0.02 255));
-
-    --status-ok: oklch(0.60 0.15 162);
-    --status-warn: oklch(0.68 0.16 70);
-    --status-danger: oklch(0.58 0.20 25);
-    --status-info: oklch(0.60 0.15 240);
-
-    --border-hairline: light-dark(oklch(0.18 0.02 255 / 0.08), oklch(1 0 0 / 0.10));
-    --catch-light: inset 0 1px 0 0 light-dark(oklch(1 0 0 / 0.85), oklch(1 0 0 / 0.12));
-    --shadow-inset:
-      inset 0 2px 4px 0 light-dark(oklch(0 0 0 / 0.06), oklch(0 0 0 / 0.45)),
-      inset 0 0 0 1px light-dark(oklch(0 0 0 / 0.04), oklch(1 0 0 / 0.05));
-    --shadow-inset-sunken: var(--shadow-inset);
-
-    --shadow-layer-sm:
-      0 1px 2px -1px light-dark(oklch(0.18 0.02 255 / 0.08), oklch(0 0 0 / 0.45)),
-      0 2px 4px -1px light-dark(oklch(0.18 0.02 255 / 0.04), oklch(0 0 0 / 0.35)),
+    --border-hairline: light-dark(oklch(0.18 0.02 255 / 0.10), oklch(1 0 0 / 0.11));
+    --catch-light: inset 0 1px 0 0 light-dark(oklch(1 0 0 / 0.88), oklch(1 0 0 / 0.13));
+    --shadow-elevation-1:
+      0 1px 3px -1px light-dark(oklch(0.18 0.02 255 / 0.08), oklch(0.08 0.01 255 / 0.45)),
+      0 3px 8px -2px light-dark(oklch(0.18 0.02 255 / 0.05), oklch(0.08 0.01 255 / 0.35)),
       var(--catch-light);
-    --shadow-layer-md:
-      0 4px 8px -2px light-dark(oklch(0.18 0.02 255 / 0.10), oklch(0 0 0 / 0.55)),
-      0 12px 20px -4px light-dark(oklch(0.18 0.02 255 / 0.07), oklch(0 0 0 / 0.50)),
+    --shadow-elevation-2:
+      0 4px 10px -2px light-dark(oklch(0.18 0.02 255 / 0.10), oklch(0.08 0.01 255 / 0.58)),
+      0 14px 26px -6px light-dark(oklch(0.18 0.02 255 / 0.08), oklch(0.08 0.01 255 / 0.50)),
       var(--catch-light);
-    --shadow-layer-lg:
-      0 8px 16px -4px light-dark(oklch(0.18 0.02 255 / 0.12), oklch(0 0 0 / 0.65)),
-      0 24px 48px -8px light-dark(oklch(0.18 0.02 255 / 0.14), oklch(0 0 0 / 0.60)),
-      var(--catch-light);
-
-    --shadow-elevation-1: var(--shadow-layer-sm);
-    --shadow-elevation-2: var(--shadow-layer-md);
-    --shadow-elevation-3: var(--shadow-layer-lg);
-    --shadow-elevation-low: var(--shadow-elevation-1);
-    --shadow-elevation-medium: var(--shadow-elevation-2);
-    --shadow-elevation-high: var(--shadow-elevation-3);
 
     --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-    --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+    --font-mono: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace;
   }
 
   [data-theme="clinical-day"] { color-scheme: light; }
   [data-theme="clinical-night"] { color-scheme: dark; }
 }
+```
 
+## 2. Ergonomic Inputs, Tabular Doses & Safe Contrast Forms
+```css
 @layer components {
   .clinical-unit {
     font-family: var(--font-mono);
@@ -83,30 +68,53 @@ Tier-3 implementation reference for `clinical-minimalist-ui`, aligned with the *
     white-space: nowrap;
     flex-shrink: 0;
   }
+  .clinical-field {
+    display: grid; gap: 0.375rem; min-inline-size: 0;
+  }
+  .clinical-input {
+    min-block-size: 44px; padding: 0.625rem 0.875rem; border-radius: 0.5rem;
+    background: var(--bg-well); border: 1px solid var(--border-hairline);
+    color: var(--ink-primary); font-variant-numeric: tabular-nums;
+  }
+  .clinical-input:user-invalid { border-color: var(--status-danger); background: color-mix(in oklab, var(--status-danger) 10%, var(--bg-card)); }
+  .clinical-input:focus-visible { outline: 2px solid var(--ink-primary); outline-offset: 2px; }
+  @media (any-pointer: coarse) { .clinical-input, button { min-block-size: 48px; } }
+}
+```
 
+## 3. A4 Vector `.sus-grid` Sheet & `@media print` Isolation
+```css
+@layer components {
   .a4-sheet, .sus-grid {
-    inline-size: 210mm;
+    inline-size: min(100%, 210mm);
     min-block-size: 297mm;
     background: oklch(1 0 0);
-    color: oklch(0.18 0.02 255);
+    color: oklch(0.16 0.01 255);
     display: grid;
     grid-template-rows: auto 1fr auto;
     gap: 12px;
     padding: 15mm;
     box-shadow: var(--shadow-elevation-2);
   }
+  .sus-grid-row {
+    display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px;
+    border-block-end: 0.25mm solid oklch(0.82 0.01 250);
+    padding-block: 4mm;
+  }
 }
 
 @layer print {
   @media print {
     @page { size: A4 portrait; margin: 12mm; }
-    body { background: oklch(1 0 0); color: oklch(0.12 0 0); }
+    body { background: oklch(1 0 0); color: oklch(0.12 0 0); print-color-adjust: exact; }
     .no-print, nav, aside { display: none; }
     .a4-sheet, .sus-grid, .surface-card {
       box-shadow: none;
-      border: 1px solid oklch(0.85 0.01 250);
+      backdrop-filter: none;
+      border: 0.25mm solid oklch(0.78 0.01 250);
       break-inside: avoid;
     }
   }
 }
 ```
+- Presence of `clinical-day`, `clinical-night`, or `.sus-grid` triggers automatic `WCAG AAA (>= 7.0:1)` verification in `ui_judge_gatekeeper.py --composite`.

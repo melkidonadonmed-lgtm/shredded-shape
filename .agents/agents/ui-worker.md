@@ -5,7 +5,10 @@ subagent: true
 mainAgent: false
 model: inherit
 commandExecutionPolicy: auto
+inheritMcp: true
+inheritCustomizations: true
 max_steps: 16
+stop_condition: "RAW_SHA256_VERIFIED"
 tools:
   - read_file
   - write_file

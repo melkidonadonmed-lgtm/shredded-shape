@@ -6,8 +6,8 @@
       "prompt": "Run the read-only WCAG 2.2 OKLCH contrast judge (FNR < 0.001) on src/components/AppShell.tsx, check 48x48px touch targets, :focus-visible, DOM order, anti-XSS, and emit a PASSED or REJECTED JSON verdict.",
       "should_trigger": true,
       "assertions": [
-        "Runs scripts/ui_judge_gatekeeper.py without modifying any source file",
-        "Checks CIE Y OKLCH contrast, focus-visible, DOM order, and reduced-motion"
+        "Runs scripts/ui_judge_gatekeeper.py, audit_tactile_ui.py (Readiness >= 90.0), and ui_ux_frontend_auditor.py (Score >= 85.0) without modifying any source file",
+        "Checks CIE Y OKLCH contrast, Dark L_card > L_canvas, focus-visible, DOM order, reduced-motion, and emits file:line + remediation"
       ]
     },
     {
