@@ -1,0 +1,29 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "shredded-shape",
+  "displayName": "Shredded-Shape UI/UX Architecture & Actor-Critic Suite",
+  "version": "1.0.0",
+  "description": "Dedicated UI/UX skill and subagent suite: DevTools forensic analysis, AI Slop detection, brand/style planning (Stitch, Figma, Fonts, 3D), clean optical implementation, and WCAG 2.2 OKLCH Actor-Critic judging.",
+  "author": {
+    "name": "Melki Franklin",
+    "url": "https://github.com/melkidonadonmed-lgtm"
+  },
+  "homepage": "https://github.com/melkidonadonmed-lgtm/shredded-shape",
+  "repository": "https://github.com/melkidonadonmed-lgtm/shredded-shape",
+  "license": "MIT",
+  "keywords": [
+    "antigravity",
+    "ui-ux",
+    "oklch",
+    "devtools",
+    "design-system",
+    "wcag",
+    "actor-critic"
+  ],
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "Run ui-frontend-analyst on this web project to inventory tokens, colors, navigation, and AI Slop score via Chrome DevTools",
+    "Plan a brand-aligned DESIGN.md and UI DAG using ui-brand-ux-planner across Soft, Hi-Tech, Tactile, Elevated, Retro, Vintage, or Clinical styles",
+    "Build and verify clean optical light/dark interfaces using ui-clean-worker and ui-quality-judge (WCAG 2.2 OKLCH)"
+  ]
+}

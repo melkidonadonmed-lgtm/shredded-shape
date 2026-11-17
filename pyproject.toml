@@ -1,0 +1,18 @@
+[project]
+name = "shredded-shape"
+version = "1.0.0"
+description = "Shredded-Shape: Dedicated UI/UX Architecture, DevTools Forensic Analyst, Brand & Asset Planner, Clean Optical Worker, and WCAG 2.2 OKLCH Actor-Critic Judge."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.7.0",
+    "pyyaml>=6.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

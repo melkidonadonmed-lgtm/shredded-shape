@@ -1,0 +1,39 @@
+{
+  "skill_name": "ui-clean-worker",
+  "evals": [
+    {
+      "id": "worker-pos-01",
+      "prompt": "Implement the AppShell and MetricCard components in React 19 and Tailwind v4 @theme from DESIGN.md with 3-layer light shadows, subtle dark-mode rim illumination without neon, superior frosted matte topbar, and run RAW SHA-256 + tsc verification.",
+      "should_trigger": true,
+      "assertions": [
+        "Implements dual polarity tokens, matte frosted surface, and dark rim lighting",
+        "Executes scripts/verify_raw_frontend.py with SHA-256 checksum verification"
+      ]
+    },
+    {
+      "id": "worker-pos-02",
+      "prompt": "Codifique uma interface limpa e funcional sem texto explicativo desnecessário, com tema claro e escuro, efeito fosco de qualidade superior, sombra em camada no claro e iluminação suave no escuro.",
+      "should_trigger": true,
+      "assertions": [
+        "Applies zero-verbiage clean components and real FSM states",
+        "Reports completion summary in pt-BR"
+      ]
+    },
+    {
+      "id": "worker-neg-01",
+      "prompt": "Audit an existing webpage in Chrome DevTools to measure AI Slop, list every hardcoded hex color, and generate a Before vs. After navigation refactor diagram.",
+      "should_trigger": false,
+      "assertions": [
+        "Routes to ui-frontend-analyst instead of ui-clean-worker"
+      ]
+    },
+    {
+      "id": "worker-neg-02",
+      "prompt": "Act as a strictly read-only WCAG 2.2 accessibility and OKLCH contrast judge to issue a PASSED or REJECTED verdict without editing any file.",
+      "should_trigger": false,
+      "assertions": [
+        "Routes to ui-quality-judge instead of ui-clean-worker"
+      ]
+    }
+  ]
+}

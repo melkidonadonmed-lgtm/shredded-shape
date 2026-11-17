@@ -1,0 +1,38 @@
+{
+  "skill_name": "ui-quality-judge",
+  "evals": [
+    {
+      "id": "judge-pos-01",
+      "prompt": "Run the read-only WCAG 2.2 OKLCH contrast judge (FNR < 0.001) on src/components/AppShell.tsx, check 48x48px touch targets, :focus-visible, DOM order, anti-XSS, and emit a PASSED or REJECTED JSON verdict.",
+      "should_trigger": true,
+      "assertions": [
+        "Runs scripts/ui_judge_gatekeeper.py without modifying any source file",
+        "Checks CIE Y OKLCH contrast, focus-visible, DOM order, and reduced-motion"
+      ]
+    },
+    {
+      "id": "judge-pos-02",
+      "prompt": "Atue como juiz crítico read-only para validar acessibilidade WCAG 2.2, contraste OKLCH, zero emojis, zero neon e emitir laudo PASSED/REJECTED para Self-Refine.",
+      "should_trigger": true,
+      "assertions": [
+        "Emits structured UIJudgeReport JSON and reports verdict in pt-BR"
+      ]
+    },
+    {
+      "id": "judge-neg-01",
+      "prompt": "Inspect our live app via Chrome DevTools to extract all literal colors, fonts, imported icons, and build a Before vs. After navigation diagram with a collapsible sidebar.",
+      "should_trigger": false,
+      "assertions": [
+        "Routes to ui-frontend-analyst instead of ui-quality-judge"
+      ]
+    },
+    {
+      "id": "judge-neg-02",
+      "prompt": "Build the new React 19 AppShell component with frosted matte CSS and run tsc + SHA-256 verification.",
+      "should_trigger": false,
+      "assertions": [
+        "Routes to ui-clean-worker instead of ui-quality-judge"
+      ]
+    }
+  ]
+}

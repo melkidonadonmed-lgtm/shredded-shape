@@ -1,0 +1,40 @@
+{
+  "skill_name": "ui-brand-ux-planner",
+  "evals": [
+    {
+      "id": "planner-pos-01",
+      "prompt": "Define the brand identity, OKLCH 60-30-10 colors without neon, pick between Hi-Tech and Tactile style tokens, pull palette from Google Stitch via agent-browser, get icons from Figma MCP, download Google Fonts, and compile a <=5-rule DESIGN.md DAG.",
+      "should_trigger": true,
+      "assertions": [
+        "Selects explicit style archetype and brand OKLCH tokens",
+        "Documents Stitch/Figma/Google Fonts/3D asset pipeline",
+        "Runs ui_dag_compiler.py enforcing <= 5 rules/node"
+      ]
+    },
+    {
+      "id": "planner-pos-02",
+      "prompt": "Planeje o novo DESIGN.md com branding, estilo Soft ou Vintage, hierarquia visual intuitiva sem excesso de texto, sugestão de stack Next.js 15 + Tailwind v4 e grafo DAG para cena Three.js / Unity.",
+      "should_trigger": true,
+      "assertions": [
+        "Enforces zero-verbiage intuitive UX and stack recommendation",
+        "Presents planning deliverable in pt-BR"
+      ]
+    },
+    {
+      "id": "planner-neg-01",
+      "prompt": "Inspect our running localhost app with Chrome DevTools to measure AI Slop, list every hardcoded hex color by file:line, and draw the current navigation Mermaid diagram.",
+      "should_trigger": false,
+      "assertions": [
+        "Routes to ui-frontend-analyst instead of ui-brand-ux-planner"
+      ]
+    },
+    {
+      "id": "planner-neg-02",
+      "prompt": "Run the read-only WCAG 2.2 OKLCH contrast judge and output a PASSED/REJECTED audit JSON.",
+      "should_trigger": false,
+      "assertions": [
+        "Routes to ui-quality-judge instead of ui-brand-ux-planner"
+      ]
+    }
+  ]
+}

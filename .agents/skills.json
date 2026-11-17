@@ -1,0 +1,13 @@
+{
+  "entries": [
+    {
+      "path": "C:/Users/melki/.agents/skills",
+      "include_only": [
+        "vercel-react-best-practices",
+        "web-design-guidelines",
+        "ai-sdk",
+        "live-api-function-auditor"
+      ]
+    }
+  ]
+}

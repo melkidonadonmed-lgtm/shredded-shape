@@ -1,0 +1,40 @@
+{
+  "skill_name": "ui-frontend-analyst",
+  "evals": [
+    {
+      "id": "analyst-pos-01",
+      "prompt": "Analyze this existing React dashboard via Chrome DevTools, list every color, CSS token, typography family, imported icon, and spacing problem by file, measure AI Slop, and draw a Before vs. After navigation diagram moving extra menus into a collapsible sidebar.",
+      "should_trigger": true,
+      "assertions": [
+        "Runs scripts/frontend_inventory_and_slop_scanner.py with --json",
+        "Captures live computed telemetry via devtools_live_probe.js when live URL exists",
+        "Emits Current Navigation Mermaid diagram and Before vs. After refactoring table"
+      ]
+    },
+    {
+      "id": "analyst-pos-02",
+      "prompt": "Faça um inventário completo do nosso frontend atual coletando dados pelo DevTools, medindo nível de IA Slop, emojis e espaçamentos ruins, e sugira separar telas em outra página.",
+      "should_trigger": true,
+      "assertions": [
+        "Audits tokens, colors, typography, menus, icons, contracts, and stack",
+        "Computes ai_slop_score and presents report in pt-BR"
+      ]
+    },
+    {
+      "id": "analyst-neg-01",
+      "prompt": "Create a brand identity from scratch, pick Soft or Hi-Tech token styles, fetch palette via Google Stitch, download Google Fonts, and write a new DESIGN.md.",
+      "should_trigger": false,
+      "assertions": [
+        "Routes to ui-brand-ux-planner instead of ui-frontend-analyst"
+      ]
+    },
+    {
+      "id": "analyst-neg-02",
+      "prompt": "Implement a new React 19 modal component with frosted glass and run tsc --noEmit and SHA-256 verification.",
+      "should_trigger": false,
+      "assertions": [
+        "Routes to ui-clean-worker instead of ui-frontend-analyst"
+      ]
+    }
+  ]
+}
