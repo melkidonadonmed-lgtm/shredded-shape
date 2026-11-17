@@ -9,7 +9,7 @@
   - `"agents/"`: 4 declarative Actor-Critic subagents (`ui-analyst.md`, `ui-planner.md`, `ui-worker.md`, `ui-judge.md`) with `send_message`, `max_steps` (`10/8/16/8`), and `<= 5` rules/node.
   - `"rules/"`: `frontend-9-axes-guidelines.md` (9-Axis SSOT + 5-Plane `OKLCH` + Mobile-First postures + `color-mix(in oklab)`).
   - `"plans/"`: `ui_actor_critic_dag.json` (4-stage bounded DAG with `<= 5` rules/node, `ui-worker max_steps: 16`, and closed-loop Self-Refine edge).
-  - `"assets/"`: `logo.svg` + modular 3-file Unified 7-Chapter Atlas (`ui_skills_architecture_atlas.html`, `atlas_styles.css`, `atlas_app.js` — `<= 520` lines each, zero external CDN, `file://`-compatible).
+  - `"assets/"`: `logo.svg` + modular 3-file Unified 7-Chapter Atlas (`ui_skills_architecture_atlas.html`, `atlas_styles.css`, `atlas_app.js` — `<= 600` lines each, zero external CDN, `file://`-compatible).
   - `"scripts/"` & `"tests/"`: `_ss_core.py`, `validate_shredded_shape.py`, `sync_shredded_shape.py`, and `test_shredded_shape_suite.py`.
 
 ## 2. Critical Technical Decisions (Do Not Violate)
@@ -19,6 +19,10 @@
 - **`[SSOT-UI-04]` Technical English Internals + `pt-BR` Bridge (`[LOCK-04]`):** Author all code, skills, references, rules, and subagents in Technical English; deliver all user communication and Atlas UI copy in **Portuguese (`pt-BR`)**.
 
 ## 3. Recent Changes (Changelog)
+- `[2026-11-17]` **`v1.4.0` — Global 4-Component Ecosystem Audit & CoT/ToT/ReAct/RAW Standardization**:
+  - Unified `max_steps` (`10/8/16/8`), `reasoning_pattern` (`CoT`/`ToT`/`ReAct`/`Self-Refine`), `stop_condition`, `domain_skills`, `max_self_refine_rounds: 3`, and `ui-worker` `DESIGN.md` materialization in `plans/ui_actor_critic_dag.json` and `AGENTS.md`.
+  - Added explicit `Axis 1`..`Axis 9` headings to `rules/frontend-9-axes-guidelines.md`, structured all 4 `agents/ui-*.md` and 6 `skills/*/SKILL.md` with `CoT -> ToT -> ReAct -> RAW` cognitive phases and `uv run "$HOME/..."` fallback commands (preserving byte-for-byte LF parity with `sync_gemini_ecosystem.py` and `.agents/agents/ui-*.md`), completed the 6 required Pydantic fields in `design_md_and_plan_template.md`, and aligned `.agents/skills.json`.
+  - Hardened `frontend_inventory_and_slop_scanner.py` (`len(unique) > 6`, adaptive postures, `REFLOW_TRANSITION_RE`, `ROW_REVERSE_RE`, `COLOR_MIX_OKLCH_WARN_RE`, `has_hard_blocker`), `devtools_live_probe.js` (`navGap < 8`, `mainFocusOutline`), `ui_dag_compiler.py` (`5-Plane OKLCH`), `verify_raw_frontend.py` (`GRAIN_ABOVE_TEXT_RE`, `SHADOWED_FONT_STACK_RE`, `UNSAFE_HTML_RE`), `ui_judge_gatekeeper.py` (`DIV_ONCLICK_NO_ROLE_RE`, `REFLOW_TRANSITION_RE`, `PRINT_SHADOW_LEAK_RE`, `CAP-600L`, `total_tags == 0` CSS pass), `ui_ux_frontend_auditor.py` (penalize `body { text-rendering: optimizeLegibility }`, `100/100` acceptability score), `visual_hierarchy_and_cdp_probe.py` (`1.4.0`, `visibleInputs <= 3`), `complex_zero_ast_auditor.py` (empty `catch`, `forwardRef`, `dangerouslySetInnerHTML`, `> 600`L), and `validate_shredded_shape.py` (`MAX_DESC_RECOMMENDED = 420`, agent negative-trigger check, 4-stage DAG parity, `Axis 1`..`Axis 9` check, `100/100` acceptability score).
 - `[2026-11-17]` **`v1.4.0` — Subagent Contract Completion (`inheritCustomizations`, `inheritMcp`, `stop_condition`) & Zero 3-Way Drift (`sync_shredded_shape.py`)**:
   - Added explicit `inheritMcp: true`, `inheritCustomizations: true`, and `stop_condition` to `agents/ui-{analyst,planner,worker,judge}.md` and removed redundant raw copying into `~/.gemini/config/agents/` in `scripts/sync_shredded_shape.py` so `plugins/shredded-shape/agents/` remains the single Antigravity SSOT.
 - `[2026-11-17]` **`v1.4.0` — Interactive `:focus-visible` Scoping & Skill/Rule Propagation (`assets/*`, `rules/*`, `skills/*`)**:
@@ -36,7 +40,7 @@
   - Upgraded `scripts/_ss_core.py` and all 7 skill scripts (`resolve_cli_target()` positional + `--target`/`--scope`, `--out` on `ui_dag_compiler.py`, `STYLE_ALIASES` `hitech -> hi-tech`, comment-safe `collect_ui_files()`, polarity-isolated `extract_theme_oklch_maps()`, hyphen-safe `REFLOW_TRANSITION_RE`, `evaluate_target()` markup isolation, fail-closed `--run-tsc`, `.sus-grid` auto-AAA, and `audit_tactile_ui.py --self-test`).
   - Hardened `validate_shredded_shape.py` (`1.4.0`/`MIT` parity across `pyproject.toml`/`plugin.json`/6 `SKILL.md`s, `send_message` + `pt-BR` subagent checks, `ui-worker` `max_steps` sync, `.js` cap in `skills/*/scripts/`) and added `--local-only` to `sync_shredded_shape.py`.
   - Upgraded 6 `SKILL.md`s, 6 `audit_criteria.md`, 4 `agents/*.md` (`send_message`, `max_steps: 10/8/16/8`), and all 16 `references/*.md` (12-Vector Anti-Slop, Stitch spacing, Flexbox `min-inline-size: 0`, `@container` isolated from `subgrid`, Mobile-First postures, `0fr -> 1fr`/`@starting-style` menus, `:user-invalid`, Tailwind v4 `@theme`).
-  - Integrated the `Atlas de Engenharia Frontend & UI Tátil` into a 3-file standalone `assets/` bundle (`<= 520`L each, 7 interactive chapters, zero external CDN, classic IIFE `defer` for `file://`, `ai_slop_score == 0`, `Readiness = 100.0`, `UI/UX = 100.0`, `Complex-Zero = 100`).
+  - Integrated the `Atlas de Engenharia Frontend & UI Tátil` into a 3-file standalone `assets/` bundle (`<= 600`L each, 7 interactive chapters, zero external CDN, classic IIFE `defer` for `file://`, `ai_slop_score == 0`, `Readiness = 100.0`, `UI/UX = 100.0`, `Complex-Zero = 100`).
 - `[2026-11-17]` **`v1.3.0` — 5-Plane Tactile Matte + Nexus `135°` Elevation & Anti-Confetti/Wireframe Gates**.
 - `[2026-11-17]` **`v1.2.0` — Anti-AI-Slop Craft, Björn Ottosson `OKLab`, 2026 Web Docs & `<= 600`L Modularity Upgrade**.
 

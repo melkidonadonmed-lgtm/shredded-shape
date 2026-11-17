@@ -42,9 +42,9 @@ Execute in causal order inside your DAG node's `owned_files` (load only needed L
 4. **Phase 4 — Real 5-State FSM, Motion, A11y & Security:**
    - Wire executable `idle | loading | empty | error | success` states, GPU-only `transform`/`opacity` (`allow-discrete` + `@starting-style`), interactive-scoped `:focus-visible` (`>= 3:1` ring; suppress structural `main[tabindex="-1"]:focus` outline and skip eager `.focus()` on initial load), `:user-invalid`, `DOM == Tab Order`, `>= 44x44px` fine (`::before`/`::after` hit-expansion on compact swatches + `input[type="range"]`) / `>= 48x48px` coarse targets, nav `gap >= 0.5rem` (`>= 13px` tabs), `<link rel="icon" type="image/svg+xml">`, Next.js 15+ `await params`, React 19 native `ref`, and `DOMPurify.sanitize()`.
 
-5. **Phase 5 — Mandatory Read-After-Write Verification (`RAW SHA-256`):**
+5. **Phase 5 (`[ReAct: OBSERVATION -> SELF-CORRECTION]`) — Mandatory Read-After-Write Verification (`RAW SHA-256`):**
    - Run the deterministic RAW verifier + [`rules/audit_criteria.md`](rules/audit_criteria.md) after every edit:
-     - Plugin path: `python "$HOME/.gemini/config/plugins/shredded-shape/skills/ui-clean-worker/scripts/verify_raw_frontend.py" <target> --json`
+     - Plugin path (`pwsh`/POSIX): `uv run "$HOME/.gemini/config/plugins/shredded-shape/skills/ui-clean-worker/scripts/verify_raw_frontend.py" <target> --json` (or `"%USERPROFILE%\.gemini\..."` in `cmd.exe`)
      - Repo fallback: `uv run python skills/ui-clean-worker/scripts/verify_raw_frontend.py <target> --json`
    - Append `--run-tsc` whenever modifying `.ts`/`.tsx` modules (`tsc --noEmit` fail-closed on missing `tsconfig.json` or errors).
 

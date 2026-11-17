@@ -50,6 +50,9 @@ TABULAR_NUMS_RE = re.compile(r"tabular-nums")
 LEGACY_REACTFLOW_IMPORT_RE = re.compile(r"from\s+['\"]reactflow['\"]")
 SYNC_NEXT15_PARAMS_RE = re.compile(r"export\s+default\s+function\s+\w+\s*\(\s*\{\s*params\s*\}\s*:\s*\{\s*params\s*:\s*\{\s*\w+\s*:\s*string")
 ASYNC_NEXT15_PARAMS_RE = re.compile(r"Promise<\s*\{[^}]*\}\s*>")
+EMPTY_CATCH_RE = re.compile(r"\bcatch\s*(?:\([^)]*\))?\s*\{\s*\}")
+FORWARD_REF_RE = re.compile(r"\bforwardRef\s*(?:<|\()")
+UNSAFE_HTML_RE = re.compile(r"dangerouslySetInnerHTML\s*=")
 
 
 def _evaluate_axis_1(combined: str, has_css: bool, org_rep: UnifiedVisualOrgReport, findings: list[dict[str, Any]]) -> int:
@@ -121,6 +124,19 @@ def _evaluate_axis_3(combined: str, sources: dict[str, str], root_dir: Path | No
         pen = min(15, len(org_rep.graph_node_violations) * 8)
         score -= pen
         findings.append({"axis": 3, "severity": "CRITICAL", "rule": "GRAPH_NODE_PLACEBO_OR_OVERSTUFFING", "detail": f"Graph node pollution/placebo (-{pen} pts)"})
+    if EMPTY_CATCH_RE.search(combined):
+        score -= 10
+        findings.append({"axis": 3, "severity": "CRITICAL", "rule": "SWALLOWED_CATCH_BLOCK", "detail": "Empty catch {} block swallows errors (-10 pts)"})
+    if FORWARD_REF_RE.search(combined):
+        score -= 5
+        findings.append({"axis": 3, "severity": "WARN", "rule": "REACT19_LEGACY_FORWARD_REF", "detail": "Legacy forwardRef detected; pass ref as prop in React 19 (-5 pts)"})
+    is_fouc = "localStorage.getItem" in combined and "setAttribute('data-theme'" in combined.replace('"', "'")
+    if UNSAFE_HTML_RE.search(combined) and "DOMPurify" not in combined and not is_fouc:
+        score -= 15
+        findings.append({"axis": 3, "severity": "CRITICAL", "rule": "UNSANITIZED_HTML_SINK", "detail": "dangerouslySetInnerHTML without DOMPurify.sanitize() (-15 pts)"})
+    if oversized := [k for k, v in sources.items() if len(v.splitlines()) > 600]:
+        score -= 10
+        findings.append({"axis": 3, "severity": "CRITICAL", "rule": "CAP_600L_EXCEEDED", "detail": f"Files exceed 600 lines: {', '.join(oversized[:3])} (-10 pts)"})
     if root_dir is not None:
         resolved_root = root_dir.resolve()
         ref_paths = set(sources.keys()) | {m.group(1) for m in re.finditer(r"""(?:filePath|sourcePath|nodePath)\s*:\s*['"]([^'"]+\.(?:tsx|ts|jsx|js|py|go|css))['"]""", combined)}
@@ -183,7 +199,7 @@ def audit_source_bundle(sources: dict[str, str], root_dir: Path | None = None, l
     total = s1 + s2 + s3 + s4
     verdict = "[PASS]" if total >= 90 else ("[WARN]" if total >= 75 else "[FAIL]")
     return {
-        "skill": "complex-zero", "version": "3.2.0", "verdict": verdict, "total_score": total,
+        "skill": "complex-zero", "version": "1.4.0", "verdict": verdict, "total_score": total,
         "axes": {"eixo_1_interatividade_fitts": s1, "eixo_2_macro_micro_oklch": s2, "eixo_3_xyflow_ast_antifake": s3, "eixo_4_nextjs15_async_params": s4},
         "visual_organization_and_hierarchy": asdict(org_rep),
         "nav_x_func_bridge": _bridge_sga_score(root_dir),

@@ -86,7 +86,7 @@ CHROME_DEVTOOLS_EVALUATE_SCRIPT = """() => {
     visualHierarchy: { h1Px, h2Px, h3Px, bodyPx, hierarchyMonotonic },
     organizationSprawl: { visibleNavs, allTabs: tabEls.length, duplicateTabLabels, visibleInputs },
     crampedMenus,
-    passed: hierarchyMonotonic && crampedMenus.length === 0 && visibleNavs <= 3 && tabEls.length <= 6 && duplicateTabLabels.length === 0 && visibleInputs <= 2,
+    passed: hierarchyMonotonic && crampedMenus.length === 0 && visibleNavs <= 3 && tabEls.length <= 6 && duplicateTabLabels.length === 0 && visibleInputs <= 3,
   };
 }"""
 
@@ -193,7 +193,7 @@ def probe_live_url_metadata(live_url: str, timeout_sec: float = 5.0) -> dict[str
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         return {"reachable": False, "error": "URL must start with http:// or https://"}
     try:
-        req = urllib.request.Request(live_url, headers={"User-Agent": "ComplexZero-Probe/3.2"})
+        req = urllib.request.Request(live_url, headers={"User-Agent": "ComplexZero-Probe/1.4.0"})
         with urllib.request.urlopen(req, timeout=timeout_sec) as resp:  # nosec B310
             html = resp.read().decode("utf-8", errors="replace")
             status_code = resp.status

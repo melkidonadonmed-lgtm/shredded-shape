@@ -103,23 +103,28 @@ class DOMStructureParser(HTMLParser):
         self.viewport_present = self.aria_current_present = False
         self.icons_count = self.asymmetric_or_nonstd_icons = self._hidden_svg_depth = 0
 
+    def _handle_svg_tag(self, attr_map: dict[str, str]) -> None:
+        if "hidden" in attr_map or attr_map.get("width") == "0":
+            self._hidden_svg_depth += 1
+        elif self._hidden_svg_depth == 0:
+            self._inspect_svg_icon(attr_map)
+
+    @staticmethod
+    def _is_viewport_meta(t: str, attr_map: dict[str, str]) -> bool:
+        return t == "meta" and attr_map.get("name", "").lower() == "viewport" and "width=device-width" in attr_map.get("content", "").lower()
+
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         t = tag.lower()
         attr_map = {k.lower(): (v or "") for k, v in attrs}
         self.total_tags += 1
-        if t == "div":
-            self.div_count += 1
-        elif t in SEMANTIC_TAGS:
-            self.semantic_count += 1
-        if t == "meta" and attr_map.get("name", "").lower() == "viewport" and "width=device-width" in attr_map.get("content", "").lower():
+        self.div_count += 1 if t == "div" else 0
+        self.semantic_count += 1 if t in SEMANTIC_TAGS else 0
+        if self._is_viewport_meta(t, attr_map):
             self.viewport_present = True
         if attr_map.get("aria-current") == "page":
             self.aria_current_present = True
         if t == "svg":
-            if "hidden" in attr_map or attr_map.get("width") == "0":
-                self._hidden_svg_depth += 1
-            elif self._hidden_svg_depth == 0:
-                self._inspect_svg_icon(attr_map)
+            self._handle_svg_tag(attr_map)
         elif t in ("symbol", "defs") and self._hidden_svg_depth > 0:
             self._hidden_svg_depth += 1
         if t not in VOID_ELEMENTS:
@@ -133,27 +138,28 @@ class DOMStructureParser(HTMLParser):
         if t not in VOID_ELEMENTS and self.current_depth > 0:
             self.current_depth -= 1
 
+    @staticmethod
+    def _is_standard_viewbox_px(vb: str) -> bool:
+        parts = vb.split()
+        if len(parts) != 4 or parts[2] != parts[3]:
+            return False
+        try:
+            return int(float(parts[2])) in STANDARD_ICON_PX
+        except ValueError:
+            return False
+
     def _inspect_svg_icon(self, attr_map: dict[str, str]) -> None:
         if attr_map.get("role") == "img" or "data-chart" in attr_map:
             return
         self.icons_count += 1
         w_str = re.sub(r"[^0-9]", "", attr_map.get("width", ""))
         h_str = re.sub(r"[^0-9]", "", attr_map.get("height", ""))
-        vb = attr_map.get("viewbox", "")
         if w_str and h_str:
             w_px, h_px = int(w_str), int(h_str)
-            if max(w_px, h_px) >= 48:
-                return
-            if w_px != h_px or w_px not in STANDARD_ICON_PX:
+            if max(w_px, h_px) < 48 and (w_px != h_px or w_px not in STANDARD_ICON_PX):
                 self.asymmetric_or_nonstd_icons += 1
             return
-        if not TW_ICON_CLASS_RE.search(attr_map.get("class", "")):
-            parts = vb.split()
-            try:
-                if len(parts) == 4 and parts[2] == parts[3] and int(float(parts[2])) in STANDARD_ICON_PX:
-                    return
-            except ValueError:
-                pass
+        if not TW_ICON_CLASS_RE.search(attr_map.get("class", "")) and not self._is_standard_viewbox_px(attr_map.get("viewbox", "")):
             self.asymmetric_or_nonstd_icons += 1
 
 
@@ -176,8 +182,7 @@ def audit_color_contrast_pairs(source: str) -> tuple[list[str], float]:
     return violations, min_cr
 
 
-def audit_design_tokens_8px(source: str, recs: list[str]) -> tuple[float, float, list[str]]:
-    """Audit 4px/8px grid alignment, arbitrary px literals, and anti-slop token hygiene."""
+def _collect_spacing_px_checks(source: str) -> tuple[int, int, list[str]]:
     arbitrary: list[str] = []
     total_checks = valid_checks = 0
     for m in TW_ARBITRARY_PX_RE.finditer(source):
@@ -193,12 +198,19 @@ def audit_design_tokens_8px(source: str, recs: list[str]) -> tuple[float, float,
                 valid_checks += 1
             else:
                 arbitrary.append(f"{px_m.group(1)}px")
+    return total_checks, valid_checks, arbitrary
+
+
+def audit_design_tokens_8px(source: str, recs: list[str]) -> tuple[float, float, list[str]]:
+    """Audit 4px/8px grid alignment, arbitrary px literals, and anti-slop token hygiene."""
+    total_checks, valid_checks, arbitrary = _collect_spacing_px_checks(source)
     token_vars = set(re.findall(r"var\(--[a-zA-Z0-9_-]+\)", source))
     total_checks += max(len(token_vars), 3)
     valid_checks += len(token_vars)
     adherence = round((valid_checks / max(total_checks, 1)) * 100.0, 1)
     slop_pen = 25.0 if _ss_core.SLOP_TOKEN_RE.search(source) else 0.0
-    score = max(0.0, min(100.0, adherence - (len(arbitrary) * 8.0) + (10.0 if token_vars else -15.0) - slop_pen))
+    bonus = 10.0 if token_vars else -15.0
+    score = max(0.0, min(100.0, adherence - (len(arbitrary) * 8.0) + bonus - slop_pen))
     if arbitrary:
         recs.append(f"Replace {len(arbitrary)} arbitrary px values ({', '.join(arbitrary[:4])}) with 4px/8px tokens.")
     if slop_pen:
@@ -218,9 +230,12 @@ def audit_typography_and_wcag(source: str, parser: DOMStructureParser, recs: lis
     if "antialiased" not in low:
         score -= 15.0
         recs.append("Enable subpixel smoothing (-webkit-font-smoothing: antialiased).")
-    if not any(k in low for k in ("font-optical-sizing", "font-synthesis", "optimizelegibility")):
+    if not any(k in low for k in ("font-optical-sizing", "font-synthesis")):
         score -= 10.0
         recs.append("Add font-optical-sizing: auto and font-synthesis: none for crisp type.")
+    if re.search(r"\bbody\b[^{}]*\{[^}]*text-rendering\s*:\s*optimizelegibility", low, re.DOTALL):
+        score -= 15.0
+        recs.append("Use text-rendering: auto on body to protect INP; reserve optimizeLegibility for h1..h3.")
     tiny_fonts = [int(m.group(1)) for m in FONT_SIZE_PX_RE.finditer(source) if int(m.group(1)) < 12]
     if tiny_fonts:
         score -= 20.0
@@ -251,13 +266,18 @@ def audit_dom_and_navigation(source: str, parser: DOMStructureParser, recs: list
     return max(0.0, round(score, 1)), divsoup
 
 
+def _has_zenithal_highlight(low: str) -> bool:
+    if re.search(r"border-top\s*:\s*1px\s+solid\s+(?:rgba\(\s*255\s*,\s*255\s*,\s*255|oklch\(\s*1\s+0\s+0)", low):
+        return True
+    if re.search(r"inset\s+0(?:px)?\s+1px\s+0(?:px)?(?:\s+0(?:px)?)?\s+(?:rgba\(\s*255\s*,\s*255\s*,\s*255|oklch\(\s*1\s+0\s+0|light-dark\()", low):
+        return True
+    if any(k in low for k in ("--specular-rim", "--catch-light", "--shadow-inset", "--light-zenith", "--rim-top")):
+        return True
+    return "border-t" in low and "white/" in low
+
+
 def _evaluate_lighting_score(source: str, low: str, recs: list[str]) -> tuple[float, bool, bool]:
-    has_zenith = bool(
-        re.search(r"border-top\s*:\s*1px\s+solid\s+(?:rgba\(\s*255\s*,\s*255\s*,\s*255|oklch\(\s*1\s+0\s+0)", low)
-        or re.search(r"inset\s+0(?:px)?\s+1px\s+0(?:px)?(?:\s+0(?:px)?)?\s+(?:rgba\(\s*255\s*,\s*255\s*,\s*255|oklch\(\s*1\s+0\s+0|light-dark\()", low)
-        or any(k in low for k in ("--specular-rim", "--catch-light", "--shadow-inset", "--light-zenith", "--rim-top"))
-        or ("border-t" in low and "white/" in low)
-    )
+    has_zenith = _has_zenithal_highlight(low)
     shadows = [m.group(1) for m in BOX_SHADOW_RE.finditer(source) if not _ss_core.NEON_GLOW_RE.search(f"box-shadow:{m.group(1)}")]
     has_layered = any("," in s for s in shadows) or any(tok in low for tok in ELEVATION_TOKENS)
     score = (55.0 if has_zenith else 20.0) + (45.0 if has_layered else 15.0)

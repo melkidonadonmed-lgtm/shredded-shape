@@ -104,11 +104,11 @@ def _build_navigation_artifacts(nav_targets: list[str], oversized_files: list[st
         safe = re.sub(r"[^a-zA-Z0-9_]", "_", route) or f"route_{idx}"
         lines.append(f'  Root --> N_{idx}_{safe}["{route}"]')
     proposals: list[NavigationRefactorProposal] = []
-    if len(unique) > 5 or raw_text.count("<nav") > 3:
+    if len(unique) > 6 or raw_text.count("<nav") > 3:
         proposals.append(NavigationRefactorProposal(
-            issue="Top navigation density exceeds 5 primary slots",
+            issue="Navigation density exceeds <=6 primary slots or <=3 <nav> landmarks",
             before_state=f"{len(unique)} routes / {raw_text.count('<nav')} <nav> containers competing horizontally",
-            after_proposal="Consolidate into Single-DOM 256px Collapsible Sidebar Rail (>=48em) + 4-item Bottom Bar (<48em)",
+            after_proposal="Consolidate into Single-DOM Adaptive Postures: Bottom Bar (<600px), Navigation Rail (600-839px), and 248px<->64px Collapsible Sidebar (>=840px)",
             target_pattern="collapsible_sidebar_rail",
         ))
     if oversized_files:
@@ -133,6 +133,9 @@ def _scan_line_defects(rel: str, stripped: str, hex_locs: list[str], defects: li
         (_ss_core.SLOP_TOKEN_RE, "[ANTI-SLOP-TOKEN] cosmetic neon/gradient slop token"),
         (_ss_core.DASHED_BOX_SLOP_RE, "[ANTI-SLOP-WIREFRAME] dashed wireframe border detected"),
         (_ss_core.SHADOWED_FONT_STACK_RE, "[TYP-DEAD-FONT-FALLBACK] named font placed after generic family is unreachable"),
+        (_ss_core.REFLOW_TRANSITION_RE, "[PERF-REFLOW] layout-thrashing transition property detected"),
+        (_ss_core.ROW_REVERSE_RE, "[A11Y-TAB-DESYNC] row-reverse or CSS order breaks DOM == Tab order"),
+        (_ss_core.COLOR_MIX_OKLCH_WARN_RE, "[OPTICS-COLOR-MIX-OKLAB] color-mix(in oklch) risks Chromium gamut-arc shift; use in oklab"),
     )
     for ln, line in enumerate(stripped.splitlines(), 1):
         if hex_hit := HEX_COLOR_RE.search(line):
@@ -197,8 +200,12 @@ def scan_frontend(target_path: Path) -> FrontendInventoryReport:
         defects.append(f"global:1 mixed icon libraries ({', '.join(unique_libs)})")
     if _ss_core.has_confetti_badge_slop("\n".join(stripped_chunks)):
         defects.append("global:1 [ANTI-SLOP-CONFETTI] >=3 multicolored pill/badge variants; use neutral engraved-pill wells + 6px lum-bead")
+    hard_fail_tags = ("OPTICS-NO-BLACK", "OPTICS-NO-NEON", "OPTICS-NEON-GLOW", "ANTI-SLOP-BLOB", "ANTI-SLOP-CONFETTI", "ANTI-SLOP-WIREFRAME", "AUDIT-VIS-BAD-SVG", "PERF-REFLOW", "A11Y-TAB-DESYNC")
+    has_hard_blocker = any(any(tag in d for tag in hard_fail_tags) for d in defects)
     slop = min(100, min(30, emoji_n * 15) + min(55, len(defects) * 12) + (15 if oklch_n == 0 and hex_locs else 0))
-    verdict: Literal["[PASS]", "[WARN]", "[FAIL]"] = "[PASS]" if slop <= 15 else ("[WARN]" if slop <= 40 else "[FAIL]")
+    if has_hard_blocker:
+        slop = max(slop, 45)
+    verdict: Literal["[PASS]", "[WARN]", "[FAIL]"] = "[FAIL]" if (slop > 40 or has_hard_blocker) else ("[PASS]" if slop <= 15 else "[WARN]")
     mermaid, proposals = _build_navigation_artifacts(nav_links, oversized_files, "\n".join(chunks))
     return FrontendInventoryReport(
         verdict=verdict, target=str(target_path), files_scanned=len(files),

@@ -31,7 +31,7 @@ Execute in strict read-only order (never edit target source files):
 
 1. **Phase 1 — Composite Multi-Pillar Gate Execution:**
    - Run the unified composite judge (`--composite --json` orchestrating `ui_judge_gatekeeper.py`, `audit_tactile_ui.py`, and `ui_ux_frontend_auditor.py`):
-     - Plugin path: `python "$HOME/.gemini/config/plugins/shredded-shape/skills/ui-quality-judge/scripts/ui_judge_gatekeeper.py" <target> --wcag AA --composite --json`
+     - Plugin path (`pwsh`/POSIX): `uv run "$HOME/.gemini/config/plugins/shredded-shape/skills/ui-quality-judge/scripts/ui_judge_gatekeeper.py" <target> --wcag AA --composite --json` (or `"%USERPROFILE%\.gemini\..."` in `cmd.exe`)
      - Repo fallback: `uv run python skills/ui-quality-judge/scripts/ui_judge_gatekeeper.py <target> --wcag AA --composite --json`
    - Pass `--wcag AAA` explicitly on clinical/EHR/medical routes (or let `--composite` auto-escalate on `.sus-grid`).
 
@@ -43,9 +43,9 @@ Execute in strict read-only order (never edit target source files):
    - Verify static WAI-ARIA semantics (`role="group"` + `<button aria-pressed>`, zero clickable `<div>`), `DOM == Tab Order`, `:focus-visible` (`>= 2px`), `>= 44x44px` (`48x48px` coarse touch), `divsoup <= 0.45`, per-file DOM depth isolation across `.html`/`.tsx`/`.vue`, `<= 600` lines/file, zero layout reflow transitions, Next.js 15+ `await params`, and zero unsanitized HTML sinks.
    - Pair with `a11y-debugging` from `chrome-devtools-plugin` when inspecting a live browser URL.
 
-4. **Phase 4 — Structured Actor-Critic Verdict (`PASSED` / `REJECTED`):**
+4. **Phase 4 (`[Self-Refine]`) — Structured Actor-Critic Verdict (`PASSED` / `REJECTED`):**
    - Return `PASSED` only if all composite sub-auditors clear (`gatekeeper.verdict == "PASSED"`, `tactile_readiness.readiness_score >= 90`, `ui_ux_6dim.final_score >= 85`, zero critical findings).
-   - Otherwise return `REJECTED` with exact `[file:line]` fixes, bounded to `<= 3` self-refine cycles back to `ui-worker`.
+   - Otherwise return `REJECTED` with exact `[file:line]` fixes and `refinement_round` (`1..3`), bounded to `<= 3` self-refine cycles back to `ui-worker` before emitting `HITL_ESCALATION_REQUIRED`.
 
 ## Gotchas
 - **Named `[data-theme]` Polarity Mixing:** Single-polarity `[data-theme]` blocks inherit fallback `--ink-*` tokens strictly from the matching `:root` polarity (`dark` vs `light`), preventing false cross-theme failures.

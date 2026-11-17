@@ -176,7 +176,7 @@ def compile_default_dag(
         ))
     nodes.extend([
         DAGTaskNode(
-            step_id="step_01_tokens_design_contract", title="Emit 3-Layer OKLCH Tokens, Spatial Archetype and 8-Section DESIGN.md Blueprint",
+            step_id="step_01_tokens_design_contract", title="Emit 5-Plane OKLCH Tokens, Spatial Archetype and 8-Section DESIGN.md Blueprint",
             owner_agent="ui-planner", reasoning_pattern="ToT", active_rules_count=4,
             read_targets=["README.md", str(scope_target.name or ".")], owned_files=[],
             dependencies=["step_00_forensic_inventory"] if resolved_mode == "refactor" else [],

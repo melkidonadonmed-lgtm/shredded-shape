@@ -19,7 +19,7 @@
     const navGap = parseFloat(navStyle.gap || navStyle.columnGap || '8');
     for (const item of nav.querySelectorAll('a, button')) {
       const style = getComputedStyle(item);
-      if (parseFloat(style.fontSize) < 13 || (!Number.isNaN(navGap) && navGap < 6)) {
+      if (parseFloat(style.fontSize) < 13 || (!Number.isNaN(navGap) && navGap < 8)) {
         crampedMenus.push({
           text: (item.textContent || '').trim().slice(0, 40),
           fontSize: style.fontSize,
@@ -85,6 +85,9 @@
   const emojiRe = /[\u{1F300}-\u{1FAFF}\u{26A0}-\u{26FF}\u{2702}-\u{27B0}]/gu;
   const emojiMatches = (body ? body.innerText || '' : '').match(emojiRe) || [];
   const bodyOptimizeLegibility = body ? getComputedStyle(body).textRendering === 'optimizelegibility' : false;
+  const mainEl = document.querySelector('main[tabindex="-1"]');
+  const mainCs = mainEl ? getComputedStyle(mainEl) : null;
+  const mainFocusOutline = Boolean(mainCs && mainCs.outlineStyle !== 'none' && parseFloat(mainCs.outlineWidth || '0') > 0);
 
   return {
     url: location.href,
@@ -107,6 +110,7 @@
     neonGlowCount,
     dashedWireframeCount,
     bodyOptimizeLegibility,
+    mainFocusOutline,
     malformedSvgCount,
     orphanedInputsCount,
     emojiCount: emojiMatches.length,

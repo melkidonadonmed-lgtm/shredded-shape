@@ -11,7 +11,7 @@ Build resilient UI modules (`<= 600` lines/file, `<= 60` lines/function) using M
 Render **one** DOM navigation tree that adapts cleanly across 3 canonical viewport postures without horizontal overflow (`min-inline-size: 0` on Grid/Flex children):
 - **`Compact (< 600px)`:** Single-column stack + bottom action bar respecting `padding-block-end: env(safe-area-inset-bottom)` and native `<dialog>` / `[popover]` sheets (`min-block-size: 48px`).
 - **`Medium (600px–839px)`:** Vertical 64px–72px Navigation Rail on inline-start + scrollable content pane (`content-visibility: auto`).
-- **`Expanded (>= 840px)`:** Collapsible Sidebar (`248px <-> 64px`, translated via `grid-template-columns` or transform drawer without layout thrashing) + Supporting Detail Pane.
+- **`Expanded (>= 840px)`:** Collapsible Sidebar (`248px–264px <-> 64px–72px`, translated via `grid-template-columns` or transform drawer without layout thrashing) + Supporting Detail Pane.
 
 ```css
 @layer tokens, reset, layout, components, styles, utilities, motion;

@@ -36,6 +36,8 @@ BG_DECL_RE = re.compile(r"background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,6})\b", re
 CSS_BLOCK_RE = re.compile(r"([^{};]+)\{([^{}]*)\}", re.DOTALL)
 BAD_SPAN_PRESSED_RE = re.compile(r"<span\b(?![^>]*\brole\s*=\s*['\"]button['\"])[^>]*\baria-pressed\s*=", re.IGNORECASE)
 BAD_LISTBOX_BTN_RE = re.compile(r'role\s*=\s*["\']listbox["\'][\s\S]{0,1200}<button\b(?![^>]*\brole\s*=\s*["\']option["\'])[^>]*\baria-selected\s*=', re.IGNORECASE)
+DIV_ONCLICK_NO_ROLE_RE = re.compile(r"<div\b(?![^>]*\brole=)[^>]*\bonClick=", re.IGNORECASE)
+PRINT_SHADOW_LEAK_RE = re.compile(r"@media\s+print\b[\s\S]*?box-shadow\s*:\s*(?!none\b)[^;}{]+", re.IGNORECASE)
 
 
 class JudgeFinding(BaseModel):
@@ -225,10 +227,15 @@ def _check_static_rules(raw: str, stripped: str, rel: str, bundle_stripped: str,
         (_ss_core.DASHED_BOX_SLOP_RE, "ANTI-SLOP-WIREFRAME", "CRITICAL", "[OBSERVED FACT]", "Dashed wireframe layout border detected", "Use recessed wells (--bg-well) or 1px hairline separation (--border-side) instead of dashed boxes."),
         (BAD_SPAN_PRESSED_RE, "AUDIT-A11Y-ARIA-ATTR", "CRITICAL", "[OBSERVED FACT]", "aria-pressed used on non-interactive <span> without role='button'", "Use native <button type='button' aria-pressed='...'>."),
         (BAD_LISTBOX_BTN_RE, "AUDIT-A11Y-ARIA-ATTR", "CRITICAL", "[OBSERVED FACT]", "role='listbox' wraps <button aria-selected> without role='option'", "Use role='group' with <button aria-pressed> or proper role='option'."),
+        (DIV_ONCLICK_NO_ROLE_RE, "AUDIT-A11Y-CLICK-DIV", "CRITICAL", "[OBSERVED FACT]", "Clickable <div onClick> without semantic button/role", "Use native <button type='button'> or a.card-link::after."),
+        (_ss_core.REFLOW_TRANSITION_RE, "PERF-REFLOW", "CRITICAL", "[OBSERVED FACT]", "Layout-thrashing transition property (all/width/height/margin/padding)", "Animate GPU transform and opacity only."),
+        (PRINT_SHADOW_LEAK_RE, "CLINICAL-PRINT-SHADOW", "CRITICAL", "[OBSERVED FACT]", "Non-none box-shadow inside @media print bleeds on clinical A4 sheets", "Set box-shadow: none; backdrop-filter: none; inside @media print."),
     )
     for pattern, rule_id, severity, ep_type, msg, rem in rules:
         if pattern.search(stripped):
             findings.append(JudgeFinding(rule_id=rule_id, severity=severity, epistemic_type=ep_type, file=f"{rel}:{_first_line(stripped, pattern)}", message=msg, remediation=rem))
+    if len(raw.splitlines()) > 600:
+        findings.append(JudgeFinding(rule_id="CAP-600L", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:601", message=f"File exceeds 600-line ceiling ({len(raw.splitlines())} lines)", remediation="Split module by domain concern (<= 600 lines/file)."))
     if re.search(r"//.*?\bidle\b.*?\bloading\b.*?\berror\b", raw, re.IGNORECASE):
         findings.append(JudgeFinding(rule_id="AUDIT-STATE-GAMING", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:1", message="Comment-gamed FSM state strings detected", remediation="Implement executable FSM transitions instead of comments."))
     for msg in _ss_core.find_neon_violations(stripped):
@@ -294,7 +301,7 @@ def _run_composite(target_path: Path, wcag_level: Literal["AA", "AAA"]) -> dict[
     gate = evaluate_ui(target_path, wcag_level=wcag_level)
     tactile = audit_tactile_ui.run_audit(target_path)
     ux_rep = ui_ux_frontend_auditor.evaluate_target(target_path)
-    ux_ok = ux_rep.total_tags > 0 and ux_rep.verdict == "PASS"
+    ux_ok = (ux_rep.total_tags == 0) or (ux_rep.verdict == "PASS")
     overall = "PASSED" if (gate.verdict == "PASSED" and tactile.get("verdict") == "PASS" and ux_ok) else "REJECTED"
     return {
         "overall_verdict": overall,

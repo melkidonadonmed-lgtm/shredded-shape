@@ -22,11 +22,13 @@ Every Stage 1 plan emits this exact blueprint structure so `ui-worker` materiali
   "complexity_tier": "tier_3_fullstack_pwa",
   "brand_oklch_hue": 245,
   "max_self_refine_rounds": 3,
+  "recommended_stack": ["Next.js 15+ App Router", "React 19", "TypeScript", "Tailwind v4 @theme", "OKLCH"],
+  "style_tokens": {"radius": "1.0rem", "chroma_cap": "0.16", "menu": "tactile_48px_rail", "font": "Plus Jakarta Sans", "spatial": "workbench_split_view"},
   "nodes": [
-    {"step_id": "step_00", "owner_agent": "ui-analyst", "active_rules_count": 4, "read_targets": ["src"], "owned_files": []},
-    {"step_id": "step_01", "owner_agent": "ui-planner", "active_rules_count": 4, "read_targets": ["src"], "owned_files": [], "dependencies": ["step_00"]},
-    {"step_id": "step_02", "owner_agent": "ui-worker", "active_rules_count": 5, "read_targets": ["DESIGN.md"], "owned_files": ["DESIGN.md", "src/app/globals.css"], "dependencies": ["step_01"]},
-    {"step_id": "step_03", "owner_agent": "ui-judge", "active_rules_count": 4, "read_targets": ["src/app/globals.css"], "owned_files": [], "dependencies": ["step_02"]}
+    {"step_id": "step_00_forensic_inventory", "title": "Forensic Token & Anti-Slop Inventory", "owner_agent": "ui-analyst", "reasoning_pattern": "CoT", "active_rules_count": 4, "read_targets": ["src"], "owned_files": [], "dependencies": [], "acceptance_gate": "ai_slop_score <= 15 + 7-section CLAREZA", "fallback_branch": "fallback_static_ast_inventory"},
+    {"step_id": "step_01_tokens_design_contract", "title": "5-Plane OKLCH Tokens & 8-Section DESIGN.md", "owner_agent": "ui-planner", "reasoning_pattern": "ToT", "active_rules_count": 4, "read_targets": ["src"], "owned_files": [], "dependencies": ["step_00_forensic_inventory"], "acceptance_gate": "5-Plane OKLCH C<=0.20 + style/spatial locked", "fallback_branch": "fallback_standard_neutral_tokens"},
+    {"step_id": "step_02_shell_and_route_impl", "title": "Materialize DESIGN.md & Implement UI", "owner_agent": "ui-worker", "reasoning_pattern": "ReAct", "active_rules_count": 5, "read_targets": ["DESIGN.md"], "owned_files": ["DESIGN.md", "src/app/globals.css"], "dependencies": ["step_01_tokens_design_contract"], "acceptance_gate": "RAW SHA-256 + tsc pass + 3-layer shadows", "fallback_branch": "fallback_single_column_shell"},
+    {"step_id": "step_03_wcag_actor_critic_judge", "title": "Read-Only WCAG 2.2 Composite Judge", "owner_agent": "ui-judge", "reasoning_pattern": "Self-Refine", "active_rules_count": 4, "read_targets": ["src/app/globals.css"], "owned_files": [], "dependencies": ["step_02_shell_and_route_impl"], "acceptance_gate": "verdict == PASSED, contrast >= 4.5:1", "fallback_branch": "trigger_worker_self_refine_max_3"}
   ]
 }
 ```

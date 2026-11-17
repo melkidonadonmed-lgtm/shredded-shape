@@ -1,6 +1,6 @@
 ---
 name: clinical-minimalist-ui
-description: "Use when designing, planning, or building clinical interfaces, electronic health records (EHR/PEP dashboards), A4 vector print sheets (.sus-grid), and medical calculators with WCAG AAA precision and zero AI slop. Do NOT use for generic SaaS, e-commerce, or non-clinical dashboards."
+description: "Use when auditing, designing, planning, or building clinical interfaces, electronic health records (EHR/PEP dashboards), A4 vector print sheets (.sus-grid), and medical calculators with WCAG AAA precision and zero AI slop. Do NOT use for generic SaaS, e-commerce, or non-clinical dashboards."
 license: MIT
 compatibility: "Antigravity 2.0 / Claude Code / Gemini CLI with Python 3.12+ (uv) and Modern CSS"
 metadata:
@@ -32,7 +32,7 @@ Respect strict **Stage Role Guards**: operate **read-only** when bound inside `u
 
 1. **Phase 1 — Clinical Polarity & `OKLCH` Safety Calibration:**
    - Apply [`references/clinical_polarities_architecture.md`](references/clinical_polarities_architecture.md) and [`references/clinical_a4_tokens_guide.md`](references/clinical_a4_tokens_guide.md): Day Clinic Light (`OKLCH(0.985 0.006 240)`) + Night Shift Dark (`OKLCH(0.165 0.015 245)`, never `#000000`), enforcing `>= 7.0:1` WCAG AAA contrast on dosages, lab alerts, and patient identifiers.
-   - Constrain non-danger accents (`C <= 0.16`); restrict clinical red alerts (`15°..40°` hue) to `C <= 0.24`. Zero neon glows, blur blobs, or decorative slop.
+   - Constrain primary chrome accents to `C <= 0.12` (`_ss_core` `clinical` preset; semantic status ok/warn `C <= 0.16`) and restrict clinical red alerts (`15°..40°` hue) to `C <= 0.24`. Zero neon glows, blur blobs, or decorative slop.
 
 2. **Phase 2 — Typography, Single-Library SVGs & Clinical Data Clarity:**
    - Use `font-variant-numeric: tabular-nums;` on all lab values, timestamps, and doses; set `text-rendering: auto; font-optical-sizing: auto;` on `body` (protects form INP latency) and `optimizeLegibility` strictly on `h1..h3`.

@@ -37,6 +37,7 @@ FORBIDDEN_AGENT_TOOLS = frozenset({
 READ_ONLY_AGENTS = frozenset({"ui-analyst.md", "ui-planner.md", "ui-judge.md"})
 REQUIRED_HEADINGS = ("Overview", "Inputs", "Procedure", "Gotchas", "Output", "User Communication")
 CODE_CAP_EXTS = frozenset({".py", ".js", ".mjs", ".html", ".css"})
+MAX_DESC_RECOMMENDED = 420
 
 
 def _extract_frontmatter(raw: str) -> tuple[dict[str, Any], str]:
@@ -69,28 +70,39 @@ def _check_skill_markdown(skill_dir: Path, raw: str, body: str, errors: list[str
     _check_relative_links(skill_dir, skill_dir / "SKILL.md", body, errors)
 
 
+_EVAL_CASE_KEYS = frozenset({"id", "prompt", "should_trigger", "assertions"})
+
+
+def _is_valid_eval_item(item: Any, seen_ids: set[str]) -> bool:
+    if not isinstance(item, dict) or set(item.keys()) != _EVAL_CASE_KEYS:
+        return False
+    eid = str(item["id"]).strip()
+    if not eid or eid in seen_ids or not str(item["prompt"]).strip():
+        return False
+    if not isinstance(item["should_trigger"], bool) or not item["assertions"]:
+        return False
+    seen_ids.add(eid)
+    return True
+
+
 def _check_evals_json(skill_dir: Path, evals_file: Path, strict_mode: bool, errors: list[str]) -> None:
     if not evals_file.is_file():
         errors.append(f"[FAIL] {skill_dir.name}: missing evals/evals.json")
         return
     data = json.loads(evals_file.read_text(encoding="utf-8"))
-    if strict_mode and (not isinstance(data, dict) or set(data.keys()) != {"skill_name", "evals"} or data.get("skill_name") != skill_dir.name):
+    is_valid_root = isinstance(data, dict) and set(data.keys()) == {"skill_name", "evals"} and data.get("skill_name") == skill_dir.name
+    if strict_mode and not is_valid_root:
         errors.append(f"[FAIL] {skill_dir.name}: evals.json must use canonical {{skill_name, evals}} keys")
         return
     evals = data.get("evals", []) if isinstance(data, dict) else []
     pos = sum(1 for item in evals if isinstance(item, dict) and item.get("should_trigger") is True)
     neg = sum(1 for item in evals if isinstance(item, dict) and item.get("should_trigger") is False)
-    if pos < 2 or neg < 2:
+    if min(pos, neg) < 2:
         errors.append(f"[FAIL] {skill_dir.name}: evals.json needs >=2 positive and >=2 negative cases")
     seen_ids: set[str] = set()
     for idx, item in enumerate(evals):
-        if not isinstance(item, dict) or set(item.keys()) != {"id", "prompt", "should_trigger", "assertions"}:
-            errors.append(f"[FAIL] {skill_dir.name}: eval #{idx} must match {{id, prompt, should_trigger, assertions}}")
-            continue
-        eid = str(item["id"]).strip()
-        if not eid or eid in seen_ids or not str(item["prompt"]).strip() or not isinstance(item["should_trigger"], bool) or not item["assertions"]:
+        if not _is_valid_eval_item(item, seen_ids):
             errors.append(f"[FAIL] {skill_dir.name}: eval #{idx} has invalid or duplicate id/prompt/assertions")
-        seen_ids.add(eid)
 
 
 def _check_skill_assets(skill_dir: Path, strict_mode: bool, errors: list[str]) -> None:
@@ -112,24 +124,41 @@ def _check_skill_assets(skill_dir: Path, strict_mode: bool, errors: list[str]) -
     _check_evals_json(skill_dir, skill_dir / "evals" / "evals.json", strict_mode, errors)
 
 
+def _check_single_script_ast(skill_name: str, item: Path, src: str, errors: list[str]) -> None:
+    try:
+        tree = ast.parse(src)
+    except SyntaxError as exc:
+        errors.append(f"[FAIL] {skill_name}/{item.name}: syntax error {exc}")
+        return
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "input":
+            errors.append(f"[FAIL] {skill_name}/{item.name}: interactive input() forbidden")
+
+
 def _check_scripts_ast(skill_dir: Path, errors: list[str]) -> None:
     scripts_dir = skill_dir / "scripts"
     if not scripts_dir.is_dir():
         return
     for item in sorted(scripts_dir.iterdir()):
-        if item.is_file() and item.suffix.lower() in CODE_CAP_EXTS:
-            src = item.read_text(encoding="utf-8", errors="ignore")
-            if len(src.splitlines()) > 600:
-                errors.append(f"[FAIL] {skill_dir.name}/{item.name}: exceeds 600 lines")
-            if item.suffix.lower() == ".py":
-                try:
-                    tree = ast.parse(src)
-                except SyntaxError as exc:
-                    errors.append(f"[FAIL] {skill_dir.name}/{item.name}: syntax error {exc}")
-                    continue
-                for node in ast.walk(tree):
-                    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "input":
-                        errors.append(f"[FAIL] {skill_dir.name}/{item.name}: interactive input() forbidden")
+        if not item.is_file() or item.suffix.lower() not in CODE_CAP_EXTS:
+            continue
+        src = item.read_text(encoding="utf-8", errors="ignore")
+        if len(src.splitlines()) > 600:
+            errors.append(f"[FAIL] {skill_dir.name}/{item.name}: exceeds 600 lines")
+        if item.suffix.lower() == ".py":
+            _check_single_script_ast(skill_dir.name, item, src, errors)
+
+
+def _check_strict_skill_metadata(skill_name: str, meta: dict[str, Any], errors: list[str]) -> None:
+    orphans = [k for k in ("version", "updated_at", "allowed-tools") if k in meta]
+    md_block = meta.get("metadata")
+    if orphans or not isinstance(md_block, dict):
+        errors.append(f"[FAIL] {skill_name}: invalid metadata block or orphan top keys {orphans}")
+        return
+    if not SEMVER_RE.match(str(md_block.get("version", "")).strip()):
+        errors.append(f"[FAIL] {skill_name}: invalid SemVer metadata.version")
+    elif not (str(meta.get("compatibility", "")).strip() and str(md_block.get("category", "")).strip() and md_block.get("tags")):
+        errors.append(f"[FAIL] {skill_name}: missing compatibility, metadata.category, or metadata.tags")
 
 
 def validate_skill_dir(skill_dir: Path, strict_mode: bool = True) -> list[str]:
@@ -145,17 +174,10 @@ def validate_skill_dir(skill_dir: Path, strict_mode: bool = True) -> list[str]:
     if not SKILL_NAME_RE.match(name_val) or name_val != skill_dir.name:
         errors.append(f"[FAIL] {skill_dir.name}: invalid or mismatched name '{name_val}'")
     pos_clause = NEG_TRIG_RE.split(desc_val, maxsplit=1)[0]
-    if not (30 <= len(desc_val) <= 450) or not POS_TRIG_RE.search(pos_clause) or not NEG_TRIG_RE.search(desc_val):
-        errors.append(f"[FAIL] {skill_dir.name}: description must be 30..450 chars with positive before negative triggers")
-    md_block = meta.get("metadata")
+    if not (30 <= len(desc_val) <= MAX_DESC_RECOMMENDED) or not POS_TRIG_RE.search(pos_clause) or not NEG_TRIG_RE.search(desc_val):
+        errors.append(f"[FAIL] {skill_dir.name}: description must be 30..{MAX_DESC_RECOMMENDED} chars with positive before negative triggers")
     if strict_mode:
-        orphans = [k for k in ("version", "updated_at", "allowed-tools") if k in meta]
-        if orphans or not isinstance(md_block, dict):
-            errors.append(f"[FAIL] {skill_dir.name}: invalid metadata block or orphan top keys {orphans}")
-        elif not SEMVER_RE.match(str(md_block.get("version", "")).strip()):
-            errors.append(f"[FAIL] {skill_dir.name}: invalid SemVer metadata.version")
-        elif not str(meta.get("compatibility", "")).strip() or not str(md_block.get("category", "")).strip() or not md_block.get("tags"):
-            errors.append(f"[FAIL] {skill_dir.name}: missing compatibility, metadata.category, or metadata.tags")
+        _check_strict_skill_metadata(skill_dir.name, meta, errors)
     _check_skill_markdown(skill_dir, raw, body, errors)
     _check_skill_assets(skill_dir, strict_mode, errors)
     _check_scripts_ast(skill_dir, errors)
@@ -183,25 +205,42 @@ def check_jaccard_overlaps(skill_dirs: list[Path], threshold: float = 0.80) -> l
     ]
 
 
+def _check_agent_tools(agent_name: str, policy: str, tools: Any, errors: list[str]) -> None:
+    if not isinstance(tools, list) or not tools:
+        errors.append(f"[FAIL] {agent_name}: invalid or empty tools {tools}")
+        return
+    str_tools = [str(t) for t in tools]
+    if any(t in FORBIDDEN_AGENT_TOOLS for t in str_tools) or "send_message" not in str_tools:
+        errors.append(f"[FAIL] {agent_name}: forbidden tools or missing 'send_message' in {str_tools}")
+    if agent_name in READ_ONLY_AGENTS and (any(t in ("write_file", "edit_file") for t in str_tools) or policy != "sandbox"):
+        errors.append(f"[FAIL] {agent_name}: read-only subagent requires sandbox policy and zero write tools")
+
+
 def _validate_agent_file(agent_path: Path, errors: list[str]) -> None:
     raw = agent_path.read_text(encoding="utf-8")
     meta, body = _extract_frontmatter(raw)
-    tools = meta.get("tools")
-    if not meta.get("name") or not meta.get("description") or meta.get("subagent") is not True or meta.get("mainAgent") is not False:
+    desc_val = str(meta.get("description", "")).strip()
+    if not meta.get("name") or not desc_val or meta.get("subagent") is not True or meta.get("mainAgent") is not False:
         errors.append(f"[FAIL] {agent_path.name}: missing canonical subagent frontmatter")
+    elif not (30 <= len(desc_val) <= MAX_DESC_RECOMMENDED) or not NEG_TRIG_RE.search(desc_val):
+        errors.append(f"[FAIL] {agent_path.name}: description must be 30..{MAX_DESC_RECOMMENDED} chars with 'Do NOT use' boundary")
     if meta.get("model") != "inherit":
         errors.append(f"[FAIL] {agent_path.name}: model must be 'inherit'")
     policy = str(meta.get("commandExecutionPolicy", "sandbox"))
     if policy not in {"auto", "sandbox", "off"}:
         errors.append(f"[FAIL] {agent_path.name}: invalid commandExecutionPolicy")
-    if not isinstance(tools, list) or not tools or any(str(t) in FORBIDDEN_AGENT_TOOLS for t in tools):
-        errors.append(f"[FAIL] {agent_path.name}: invalid or forbidden tools {tools}")
-    if isinstance(tools, list) and "send_message" not in [str(t) for t in tools]:
-        errors.append(f"[FAIL] {agent_path.name}: tools must include 'send_message'")
-    if isinstance(tools, list) and agent_path.name in READ_ONLY_AGENTS and (any(t in ("write_file", "edit_file") for t in tools) or policy != "sandbox"):
-        errors.append(f"[FAIL] {agent_path.name}: read-only subagent requires sandbox policy and zero write tools")
+    _check_agent_tools(agent_path.name, policy, meta.get("tools"), errors)
     if "pt-BR" not in body:
         errors.append(f"[FAIL] {agent_path.name}: subagent body must preserve [LOCK-04] 'pt-BR' communication rule")
+
+
+def _check_folder_line_caps(repo_root: Path, folder: str, errors: list[str]) -> None:
+    d = repo_root / folder
+    if not d.is_dir():
+        return
+    for f in sorted(d.rglob("*")):
+        if f.is_file() and f.suffix.lower() in CODE_CAP_EXTS and len(f.read_text("utf-8", errors="ignore").splitlines()) > 600:
+            errors.append(f"[FAIL] {f.relative_to(repo_root)} exceeds 600 lines")
 
 
 def _check_parity_and_line_caps(repo_root: Path, errors: list[str]) -> None:
@@ -222,11 +261,38 @@ def _check_parity_and_line_caps(repo_root: Path, errors: list[str]) -> None:
             if vendored.read_text("utf-8").replace("\r\n", "\n") != core_norm:
                 errors.append(f"[FAIL] Vendored {vendored.relative_to(repo_root)} drifted from scripts/_ss_core.py")
     for folder in ("scripts", "assets", "tests"):
-        d = repo_root / folder
-        if d.is_dir():
-            for f in sorted(d.rglob("*")):
-                if f.is_file() and f.suffix.lower() in CODE_CAP_EXTS and len(f.read_text("utf-8", errors="ignore").splitlines()) > 600:
-                    errors.append(f"[FAIL] {f.relative_to(repo_root)} exceeds 600 lines")
+        _check_folder_line_caps(repo_root, folder, errors)
+
+
+def _validate_dag_against_agents(repo_root: Path, tasks: list[Any], errors: list[str]) -> None:
+    if len(tasks) != 4:
+        errors.append("[FAIL] plans/ui_actor_critic_dag.json must contain 4 stage tasks")
+        return
+    for task in tasks:
+        payload = task.get("payload", {}) if isinstance(task, dict) else {}
+        agent_rel = str(payload.get("agent_spec", ""))
+        agent_file = repo_root / agent_rel
+        if not agent_rel or not agent_file.is_file():
+            errors.append(f"[FAIL] DAG task missing valid agent_spec: '{agent_rel}'")
+            continue
+        ameta, _ = _extract_frontmatter(agent_file.read_text(encoding="utf-8"))
+        if payload.get("max_steps") != ameta.get("max_steps") or payload.get("stop_condition") != ameta.get("stop_condition"):
+            errors.append(f"[FAIL] {agent_file.name} max_steps/stop_condition drifted from ui_actor_critic_dag.json")
+        if payload.get("reasoning_pattern") not in {"CoT", "ToT", "ReAct", "Self-Refine"}:
+            errors.append(f"[FAIL] {agent_file.name}: invalid reasoning_pattern in ui_actor_critic_dag.json")
+
+
+def _validate_9_axes_rule(rule_file: Path, errors: list[str]) -> None:
+    if not rule_file.is_file():
+        errors.append("[FAIL] rules/frontend-9-axes-guidelines.md missing")
+        return
+    raw = rule_file.read_text(encoding="utf-8")
+    rmeta, rbody = _extract_frontmatter(raw)
+    if rmeta.get("trigger") != "glob" or not str(rmeta.get("globs", "")).strip() or rule_file.stat().st_size > 24 * 1024:
+        errors.append("[FAIL] rules/frontend-9-axes-guidelines.md violates trigger/glob/24KB contract")
+    missing_axes = [idx for idx in range(1, 10) if f"Axis {idx}" not in rbody]
+    if missing_axes:
+        errors.append(f"[FAIL] rules/frontend-9-axes-guidelines.md missing explicit headings for Axis {missing_axes}")
 
 
 def validate_ecosystem(repo_root: Path) -> list[str]:
@@ -240,32 +306,28 @@ def validate_ecosystem(repo_root: Path) -> list[str]:
         extra = set(pdata) - ALLOWED_PLUGIN_KEYS
         if extra or not (repo_root / str(pdata.get("logo", ""))).is_file():
             errors.append(f"[FAIL] plugin.json invalid keys {sorted(extra)} or missing logo")
-    rule_file = repo_root / "rules" / "frontend-9-axes-guidelines.md"
-    if not rule_file.is_file():
-        errors.append("[FAIL] rules/frontend-9-axes-guidelines.md missing")
-    else:
-        rmeta, _ = _extract_frontmatter(rule_file.read_text(encoding="utf-8"))
-        if rmeta.get("trigger") != "glob" or not str(rmeta.get("globs", "")).strip() or rule_file.stat().st_size > 24 * 1024:
-            errors.append("[FAIL] rules/frontend-9-axes-guidelines.md violates trigger/glob/24KB contract")
+    _validate_9_axes_rule(repo_root / "rules" / "frontend-9-axes-guidelines.md", errors)
     dag_file = repo_root / "plans" / "ui_actor_critic_dag.json"
-    worker_agent = repo_root / "agents" / "ui-worker.md"
     if not dag_file.is_file():
         errors.append("[FAIL] plans/ui_actor_critic_dag.json missing")
     else:
         dag_data = json.loads(dag_file.read_text(encoding="utf-8"))
-        tasks = dag_data.get("tasks", [])
-        if len(tasks) != 4:
-            errors.append("[FAIL] plans/ui_actor_critic_dag.json must contain 4 stage tasks")
-        elif worker_agent.is_file():
-            wmeta, _ = _extract_frontmatter(worker_agent.read_text(encoding="utf-8"))
-            w_steps = wmeta.get("max_steps")
-            d_steps = tasks[2].get("payload", {}).get("max_steps") if isinstance(tasks[2], dict) else None
-            if w_steps is not None and d_steps is not None and int(w_steps) != int(d_steps):
-                errors.append(f"[FAIL] ui-worker.md max_steps ({w_steps}) != ui_actor_critic_dag.json ({d_steps})")
+        _validate_dag_against_agents(repo_root, dag_data.get("tasks", []), errors)
     for af in sorted((repo_root / "agents").glob("*.md")):
         _validate_agent_file(af, errors)
     _check_parity_and_line_caps(repo_root, errors)
     return errors
+
+
+def _check_single_skill_release_parity(s_dir: Path, exp_ver: str, exp_lic: str, errors: list[str]) -> None:
+    sm = s_dir / "SKILL.md"
+    if not sm.is_file():
+        return
+    meta, _ = _extract_frontmatter(sm.read_text(encoding="utf-8"))
+    md_ver = str((meta.get("metadata") or {}).get("version", "")).strip()
+    sk_lic = str(meta.get("license", "")).strip()
+    if md_ver != exp_ver or sk_lic != exp_lic:
+        errors.append(f"[FAIL] {s_dir.name}: version/license ({md_ver}/{sk_lic}) drifted from plugin.json ({exp_ver}/{exp_lic})")
 
 
 def _check_release_parity(repo_root: Path, skill_dirs: list[Path], errors: list[str]) -> None:
@@ -282,14 +344,7 @@ def _check_release_parity(repo_root: Path, skill_dirs: list[Path], errors: list[
     if str(proj_meta.get("version", "")).strip() != exp_ver or proj_lic.strip() != exp_lic:
         errors.append(f"[FAIL] pyproject.toml version/license drifted from plugin.json ({exp_ver} / {exp_lic})")
     for s_dir in skill_dirs:
-        sm = s_dir / "SKILL.md"
-        if not sm.is_file():
-            continue
-        meta, _ = _extract_frontmatter(sm.read_text(encoding="utf-8"))
-        md_ver = str((meta.get("metadata") or {}).get("version", "")).strip()
-        sk_lic = str(meta.get("license", "")).strip()
-        if md_ver != exp_ver or sk_lic != exp_lic:
-            errors.append(f"[FAIL] {s_dir.name}: version/license ({md_ver}/{sk_lic}) drifted from plugin.json ({exp_ver}/{exp_lic})")
+        _check_single_skill_release_parity(s_dir, exp_ver, exp_lic, errors)
 
 
 def validate_repository(repo_root: Path, strict_mode: bool = True) -> tuple[int, int, list[str]]:
@@ -319,7 +374,7 @@ def main() -> int:
     passed, total, errors = validate_repository(Path(args.root).resolve(), strict_mode=bool(args.strict))
     for err in errors:
         print(err)
-    print(f"shredded-shape validation: {passed}/{total} skills | errors={len(errors)}")
+    print(f"shredded-shape validation: {passed}/{total} skills | 4/4 subagents | errors={len(errors)}")
     return 1 if errors or total == 0 else 0
 
 

@@ -26,26 +26,26 @@ Perform a **strictly read-only** Stage 0 forensic audit before any redesign or r
 - Target source path, component folder, single HTML file, live URL, or compiled JS bundle.
 - Optional Chrome DevTools target ID or `.context/spec.md` constraints.
 
-## Procedure
-Execute strictly in causal order (never mutate target files; load only the 1–2 `references/*.md` files needed for this target):
+## Procedure (4-Step Read-Only `CoT` Trace)
+Execute strictly in causal Chain-of-Thought (`CoT`) order without mutating target files (load only the 1–2 `references/*.md` files needed):
 
-1. **Phase 1 — Target Classification & Static Inventory:**
+1. **Phase 1 (`[CoT-1]`) — Target Classification & Static Inventory:**
    - Run the deterministic AST/Slop scanner:
-     - Plugin path: `python "$HOME/.gemini/config/plugins/shredded-shape/skills/ui-frontend-analyst/scripts/frontend_inventory_and_slop_scanner.py" <target> --json`
+     - Plugin path (`pwsh`/POSIX): `uv run "$HOME/.gemini/config/plugins/shredded-shape/skills/ui-frontend-analyst/scripts/frontend_inventory_and_slop_scanner.py" <target> --json` (or `"%USERPROFILE%\.gemini\..."` in `cmd.exe`)
      - Repo fallback: `uv run python skills/ui-frontend-analyst/scripts/frontend_inventory_and_slop_scanner.py <target> --json`
-   - If `@xyflow/react` or live telemetry appears, chain `complex-zero` (`complex_zero_ast_auditor.py <target> --json`). If auditing compiled JS/Electron bundles, run `rea` (`analyze_web_bundle` / `inspect_web_page`).
+   - If `@xyflow/react` or live telemetry appears, chain `complex-zero` (`complex_zero_ast_auditor.py <target> --json`, halting at `[3. OBSERVATION]`). If auditing compiled JS/Electron bundles, run `rea` (`analyze_web_bundle` / `inspect_web_page`).
    - Flag any `.py/.js/.ts/.tsx/.html/.css` file exceeding `600` lines for modular decomposition.
 
-2. **Phase 2 — Modern Web Guidance & 12-Vector Anti-AI-Slop Debt Check:**
+2. **Phase 2 (`[CoT-2]`) — Modern Web Guidance & 12-Vector Anti-AI-Slop Debt Check:**
    - Activate the installed `modern-web-guidance` plugin skill **first** for HTML/CSS/DOM diagnostics (or fall back to local L3 references if offline in sandbox).
    - Evaluate source findings against the **12-vector checklist** in [`references/taste_anti_slop_and_style_debt.md`](references/taste_anti_slop_and_style_debt.md) and [`rules/audit_criteria.md`](rules/audit_criteria.md).
 
-3. **Phase 3 — Live Chrome DevTools & `web.dev` CWV Telemetry Probe:**
+3. **Phase 3 (`[CoT-3]`) — Live Chrome DevTools & `web.dev` CWV Telemetry Probe:**
    - Load [`references/devtools_webdev_and_modernweb_probe.md`](references/devtools_webdev_and_modernweb_probe.md) alongside `chrome-devtools-plugin` skills (`chrome-devtools`, `a11y-debugging`, `debug-optimize-lcp`, `memory-leak-debugging`).
    - Run [`scripts/devtools_live_probe.js`](scripts/devtools_live_probe.js) via `evaluate_script` and capture DevTools `CSS Overview`, `Issues`, `Performance Monitor`, INP (`<= 200ms`), and LCP (`<= 2.5s`).
 
-4. **Phase 4 — 7-Section CLAREZA Synthesis & Before/After Proposals:**
-   - Compile the **7-Section CLAREZA** output formatted per [`references/navigation_diagram_and_before_after_patterns.md`](references/navigation_diagram_and_before_after_patterns.md), including valid `As-Is` and `To-Be` Mermaid flows.
+4. **Phase 4 (`[CoT-4]`) — 7-Section CLAREZA Synthesis & Stage 1 Handoff:**
+   - Compile the **7-Section CLAREZA** output formatted per [`references/navigation_diagram_and_before_after_patterns.md`](references/navigation_diagram_and_before_after_patterns.md), including valid `As-Is` and `To-Be` Mermaid flows and recommended `(style_archetype, spatial_archetype)` inputs for `ui-brand-ux-planner`.
    - For backend/repo parity beyond DOM scope, recommend `system-project-auditor` rather than modifying code here.
 
 ## Gotchas

@@ -58,6 +58,41 @@ def _vendor_core_into_skills(core_src: Path, skills_root: Path) -> int:
     return vendored
 
 
+def _sync_local_workspace_mirrors(repo_root: Path, core_src: Path, agents_src: Path) -> tuple[int, int]:
+    """Clean legacy root triad files, vendor _ss_core locally, and sync .agents/agents."""
+    triad_cleaned = 0
+    for legacy_name in ("CONTEXT.md", "SPEC.md"):
+        legacy_path = repo_root / legacy_name
+        if legacy_path.is_file() and (repo_root / ".context" / legacy_name.lower()).is_file():
+            legacy_path.unlink(missing_ok=True)
+            triad_cleaned += 1
+    local_vendored = _vendor_core_into_skills(core_src, repo_root / "skills")
+    if not agents_src.is_dir():
+        return triad_cleaned, local_vendored
+    local_agents_dst = repo_root / ".agents" / "agents"
+    local_agents_dst.mkdir(parents=True, exist_ok=True)
+    allowed_names = {af.name for af in agents_src.glob("*.md")}
+    for existing in list(local_agents_dst.glob("*.md")):
+        if existing.name not in allowed_names:
+            existing.unlink(missing_ok=True)
+    for af in sorted(agents_src.glob("*.md")):
+        _write_lf(af, local_agents_dst / af.name)
+    return triad_cleaned, local_vendored
+
+
+def _sync_global_gemini_agents(agents_src: Path, gemini_root: Path) -> None:
+    """Sync UI subagents to gemini_root/agents and remove stale copies in gemini_root/config/agents."""
+    if not agents_src.is_dir():
+        return
+    dst_dir = gemini_root / "agents"
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    cfg_agents_dir = gemini_root / "config" / "agents"
+    for af in sorted(agents_src.glob("*.md")):
+        _write_lf(af, dst_dir / af.name)
+        if cfg_agents_dir.is_dir():
+            (cfg_agents_dir / af.name).unlink(missing_ok=True)
+
+
 def sync_shredded_shape(
     repo_root: Path = ROOT_DIR,
     gemini_root: Path = DEFAULT_GEMINI_ROOT,
@@ -66,25 +101,12 @@ def sync_shredded_shape(
 ) -> dict[str, Any]:
     """Deploy shredded-shape plugin bundle and update local workspace mirrors when authorized."""
     do_local = (gemini_root.resolve() == DEFAULT_GEMINI_ROOT.resolve()) if sync_local_workspace is None else sync_local_workspace
-    triad_cleaned = 0
     core_src = repo_root / "scripts" / "_ss_core.py"
-    local_vendored = 0
     agents_src = repo_root / "agents"
     agents_copied = len(list(agents_src.glob("*.md"))) if agents_src.is_dir() else 0
-
-    if do_local or local_only:
-        for legacy_name in ("CONTEXT.md", "SPEC.md"):
-            legacy_path = repo_root / legacy_name
-            if legacy_path.is_file() and (repo_root / ".context" / legacy_name.lower()).is_file():
-                legacy_path.unlink(missing_ok=True)
-                triad_cleaned += 1
-        local_vendored = _vendor_core_into_skills(core_src, repo_root / "skills")
-        if agents_src.is_dir():
-            local_agents_dst = repo_root / ".agents" / "agents"
-            local_agents_dst.mkdir(parents=True, exist_ok=True)
-            for af in sorted(agents_src.glob("*.md")):
-                _write_lf(af, local_agents_dst / af.name)
-
+    triad_cleaned, local_vendored = (
+        _sync_local_workspace_mirrors(repo_root, core_src, agents_src) if (do_local or local_only) else (0, 0)
+    )
     if local_only:
         return {
             "status": "LOCAL_SYNCHRONIZED",
@@ -100,25 +122,14 @@ def sync_shredded_shape(
         shutil.rmtree(plugin_dst)
     plugin_dst.mkdir(parents=True, exist_ok=True)
 
-    copied = 0
-    for folder in ("skills", "rules", "plans", "assets", "agents"):
-        copied += _copy_tree(repo_root / folder, plugin_dst / folder)
+    copied = sum(_copy_tree(repo_root / folder, plugin_dst / folder) for folder in ("skills", "rules", "plans", "assets", "agents"))
     for root_file in ("plugin.json", "README.md"):
         rf = repo_root / root_file
         if rf.is_file():
             shutil.copy2(rf, plugin_dst / root_file)
             copied += 1
     vendored_count = _vendor_core_into_skills(core_src, plugin_dst / "skills")
-
-    if agents_src.is_dir():
-        dst_dir = gemini_root / "agents"
-        dst_dir.mkdir(parents=True, exist_ok=True)
-        for af in sorted(agents_src.glob("*.md")):
-            _write_lf(af, dst_dir / af.name)
-        cfg_agents_dir = gemini_root / "config" / "agents"
-        if cfg_agents_dir.is_dir():
-            for af in sorted(agents_src.glob("*.md")):
-                (cfg_agents_dir / af.name).unlink(missing_ok=True)
+    _sync_global_gemini_agents(agents_src, gemini_root)
 
     return {
         "status": "SYNCHRONIZED",

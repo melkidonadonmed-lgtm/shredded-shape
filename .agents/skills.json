@@ -1,12 +1,18 @@
 {
   "entries": [
     {
-      "path": "C:/Users/melki/.gemini/skill-catalog/user-skills",
+      "path": "C:/Users/melki/.gemini/config/plugins/modern-web-guidance-plugin/skills",
       "include_only": [
-        "vercel-react-best-practices",
-        "web-design-guidelines",
-        "ai-sdk",
-        "live-api-function-auditor"
+        "modern-web-guidance"
+      ]
+    },
+    {
+      "path": "C:/Users/melki/.gemini/config/plugins/chrome-devtools-plugin/skills",
+      "include_only": [
+        "chrome-devtools",
+        "a11y-debugging",
+        "debug-optimize-lcp",
+        "memory-leak-debugging"
       ]
     }
   ]

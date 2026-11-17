@@ -29,8 +29,8 @@ Serve as the **strictly read-only** Stage 1 Architect. Translate business goals,
 ## Procedure
 Execute in causal order without modifying target source files (load only the `references/*.md` files needed):
 
-1. **Phase 1 — Brand, Domain & Ergonomic Dials Diagnosis:**
-   - Select 1 of the 7 Style Archetypes + 1 of the 6 Spatial Archetypes (`bento_12_col`, `workbench_split_view`, `command_center_grid`, `editorial_65ch`, `spatial_hud_dock`, `vector_a4_print`) + `site-kind`, calibrating Dials in [`references/style_archetypes_tokens_and_menus.md`](references/style_archetypes_tokens_and_menus.md).
+1. **Phase 1 (`[ToT]`) — Tree-of-Thoughts Brand, Archetype & Ergonomic Dials Selection:**
+   - Evaluate candidate `(StyleArchetype x SpatialArchetype x Dials)` branches against domain constraints and Stage 0 CLAREZA findings, prune incompatible branches, and lock 1 of the 7 Style Archetypes + 1 of the 6 Spatial Archetypes (`bento_12_col`, `workbench_split_view`, `command_center_grid`, `editorial_65ch`, `spatial_hud_dock`, `vector_a4_print`) in [`references/style_archetypes_tokens_and_menus.md`](references/style_archetypes_tokens_and_menus.md).
    - Consult [`references/intuitive_ux_rsc_and_agentic_ui.md`](references/intuitive_ux_rsc_and_agentic_ui.md) for RSC architecture, Next.js 15+ async `params`, Mobile-First adaptive postures, and `DOM == Tab Order`.
 
 2. **Phase 2 — Perceptual 5-Plane `OKLCH 60-30-10` Polarity Palette:**
@@ -46,8 +46,8 @@ Execute in causal order without modifying target source files (load only the `re
 
 5. **Phase 5 — Disjoint Bounded DAG Compilation:**
    - Run the deterministic DAG compiler (`--json` stdout in read-only sandbox; optional `--out <dag.json>` outside sandbox):
-     - Plugin path: `python "$HOME/.gemini/config/plugins/shredded-shape/skills/ui-brand-ux-planner/scripts/ui_dag_compiler.py" <target> --style <archetype> --hue <deg> --mode <auto|greenfield|refactor> --json`
-     - Repo fallback: `uv run python skills/ui-brand-ux-planner/scripts/ui_dag_compiler.py <target> --style <archetype> --hue <deg> --mode <auto|greenfield|refactor> --json`
+     - Plugin path (`pwsh`/POSIX): `uv run "$HOME/.gemini/config/plugins/shredded-shape/skills/ui-brand-ux-planner/scripts/ui_dag_compiler.py" <target> --style <archetype> [--spatial <slug>] --hue <deg> --mode <auto|greenfield|refactor> --json` (or `"%USERPROFILE%\.gemini\..."` in `cmd.exe`)
+     - Repo fallback: `uv run python skills/ui-brand-ux-planner/scripts/ui_dag_compiler.py <target> --style <archetype> [--spatial <slug>] --hue <deg> --mode <auto|greenfield|refactor> --json`
    - Verify `owned_files == []` on read-only nodes, disjoint `owned_files` across parallel `ui-worker` nodes, and `<= 5` rules/node.
 
 ## Gotchas

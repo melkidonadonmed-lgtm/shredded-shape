@@ -15,7 +15,11 @@
       "payload": {
         "agent_spec": "agents/ui-analyst.md",
         "skill": "ui-frontend-analyst",
+        "domain_skills": ["complex-zero"],
+        "reasoning_pattern": "CoT",
         "max_rules_per_node": 5,
+        "max_steps": 10,
+        "stop_condition": "CLAREZA_REPORT_EMITTED",
         "read_only": true
       }
     },
@@ -28,7 +32,11 @@
       "payload": {
         "agent_spec": "agents/ui-planner.md",
         "skill": "ui-brand-ux-planner",
+        "domain_skills": ["clinical-minimalist-ui", "complex-zero"],
+        "reasoning_pattern": "ToT",
         "max_rules_per_node": 5,
+        "max_steps": 8,
+        "stop_condition": "DESIGN_AND_DAG_EMITTED",
         "read_only": true
       }
     },
@@ -41,9 +49,12 @@
       "payload": {
         "agent_spec": "agents/ui-worker.md",
         "skill": "ui-clean-worker",
+        "domain_skills": ["clinical-minimalist-ui", "complex-zero"],
+        "reasoning_pattern": "ReAct",
         "max_rules_per_node": 5,
         "workspace": "share",
-        "max_steps": 16
+        "max_steps": 16,
+        "stop_condition": "RAW_SHA256_VERIFIED"
       }
     },
     {
@@ -55,10 +66,15 @@
       "payload": {
         "agent_spec": "agents/ui-judge.md",
         "skill": "ui-quality-judge",
+        "domain_skills": ["clinical-minimalist-ui", "complex-zero"],
+        "reasoning_pattern": "Self-Refine",
         "max_rules_per_node": 5,
+        "max_steps": 8,
+        "stop_condition": "JUDGE_VERDICT_EMITTED",
         "read_only": true,
         "self_refine_target": "stage2_ui_worker",
         "max_refinement_rounds": 3,
+        "max_self_refine_rounds": 3,
         "fnr_target": 0.001
       }
     }

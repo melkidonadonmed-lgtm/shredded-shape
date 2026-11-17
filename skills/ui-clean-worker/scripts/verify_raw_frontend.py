@@ -29,8 +29,9 @@ for _cand in (*(p / "scripts" for p in _HERE.parents if (p / "pyproject.toml").i
 
 import _ss_core
 
-STUB_RE = re.compile(r"alert\(['\"]coming soon|onClick=\{\(\)\s*=>\s*\{\s*\}\}|TODO:\s*implement|setTimeout\(\s*\(\)\s*=>\s*\{\s*\}", re.IGNORECASE)
+STUB_RE = re.compile(r"alert\(['\"]coming soon|onClick=\{\(\)\s*=>\s*\{\s*\}\}|TODO:\s*implement|setTimeout\(\s*\(\)\s*=>\s*(?:\{\s*\}|[^)]*\b(?:mock|fake|dummy)\b)", re.IGNORECASE)
 FORWARD_REF_RE = re.compile(r"\bforwardRef\s*(?:<|\()")
+UNSAFE_HTML_RE = re.compile(r"dangerouslySetInnerHTML\s*=")
 
 
 class RAWFileCheck(BaseModel):
@@ -77,10 +78,15 @@ def _check_single_file(fp: Path, min_bytes: int) -> RAWFileCheck:
         (_ss_core.SLOP_TOKEN_RE, "[ANTI-SLOP-TOKEN] Cosmetic neon or violet AI-slop token detected"),
         (_ss_core.DASHED_BOX_SLOP_RE, "[ANTI-SLOP-WIREFRAME] Dashed wireframe layout border detected"),
         (_ss_core.REFLOW_TRANSITION_RE, "[PERF-REFLOW] Layout-thrashing transition property (use transform/opacity)"),
+        (_ss_core.GRAIN_ABOVE_TEXT_RE, "[OPTICS-GRAIN-ABOVE-TEXT] feTurbulence overlay missing z-index: -1"),
+        (_ss_core.SHADOWED_FONT_STACK_RE, "[TYP-DEAD-FONT-FALLBACK] Named font placed after generic family"),
     )
     for pattern, msg in checks:
         if pattern.search(stripped):
             issues.append(msg)
+    is_fouc = "localStorage.getItem" in stripped and "setAttribute('data-theme'" in stripped.replace('"', "'")
+    if UNSAFE_HTML_RE.search(stripped) and "DOMPurify" not in stripped and not is_fouc:
+        issues.append("[AUDIT-SEC-01] dangerouslySetInnerHTML used without DOMPurify.sanitize()")
     for msg in _ss_core.find_neon_violations(stripped):
         issues.append(f"[OPTICS-NO-NEON] {msg}")
     for msg in _ss_core.inspect_inline_svgs(stripped):

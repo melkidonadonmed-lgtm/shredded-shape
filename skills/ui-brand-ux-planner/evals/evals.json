@@ -6,7 +6,7 @@
       "prompt": "Define the brand identity, OKLCH 60-30-10 colors without neon, pick between Hi-Tech and Tactile style tokens, pull palette from Google Stitch via agent-browser, get icons from Figma MCP, download Google Fonts, and compile a <=5-rule DESIGN.md DAG.",
       "should_trigger": true,
       "assertions": [
-        "Selects explicit style archetype, 1 of 6 Spatial Archetypes, and 3-layer OKLCH + Stitch spacing tokens",
+        "Selects explicit style archetype, 1 of 6 Spatial Archetypes, and 5-plane OKLCH 60-30-10 + Stitch spacing tokens",
         "Documents Stitch/Figma/Google Fonts/3D asset pipeline",
         "Runs ui_dag_compiler.py enforcing <= 5 rules/node across 4 Actor-Critic stages"
       ]

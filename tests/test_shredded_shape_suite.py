@@ -206,6 +206,17 @@ def test_sync_shredded_shape_isolated(tmp_path: Path) -> None:
     assert (plugin_root / "agents" / "ui-planner.md").is_file()
     assert len(list((tmp_path / "agents").glob("ui-*.md"))) == 4
 
+    local_repo = tmp_path / "local_ss"
+    (local_repo / "agents").mkdir(parents=True)
+    (local_repo / ".agents" / "agents").mkdir(parents=True)
+    (local_repo / ".agents" / "agents" / "stale.md").write_text("stale\n", encoding="utf-8")
+    src_agent = (ROOT_DIR / "agents" / "ui-analyst.md").read_text(encoding="utf-8")
+    (local_repo / "agents" / "ui-analyst.md").write_text(src_agent, encoding="utf-8", newline="\r\n")
+    local_res = sync_shredded_shape(repo_root=local_repo, gemini_root=tmp_path, local_only=True)
+    assert local_res["status"] == "LOCAL_SYNCHRONIZED" and local_res["agents_synced"] == 1
+    assert not (local_repo / ".agents" / "agents" / "stale.md").exists()
+    assert (local_repo / ".agents" / "agents" / "ui-analyst.md").read_bytes() == src_agent.replace("\r\n", "\n").encode("utf-8")
+
 
 
 def test_v120_oklab_svg_blob_neon_and_comment_hygiene(tmp_path: Path) -> None:

@@ -1,6 +1,6 @@
 ---
 name: complex-zero
-description: "Use when auditing dense frontend apps via ReAct CDP DevTools and AST for @xyflow/react infinite canvas, 150ms WebSocket/chokidar telemetry, ghost nodes, fake stubs, and Next.js 15+ async params without violating hook order or typography rules. Do NOT use for simple pages or backend-only APIs."
+description: "Use when auditing or refactoring dense frontend apps via ReAct CDP DevTools and AST for @xyflow/react infinite canvas, 150ms WebSocket/chokidar telemetry, ghost nodes, fake stubs, and Next.js 15+ async params without violating hook order or typography rules. Do NOT use for simple pages or backend-only APIs."
 license: MIT
 compatibility: "Antigravity 2.0, Chrome DevTools MCP, Python 3.12+ (uv), React 19, Next.js 15+"
 metadata:
@@ -36,10 +36,10 @@ See [`references/axes_and_cdp_cycle.md`](references/axes_and_cdp_cycle.md), [`re
 
 1. **`[1. THOUGHT]` (Read-Only):** Map domain tabs, nav slots, and graph nodes (`<= 6` tabs, `<= 3` `<nav>` landmarks); flag files `> 600` lines.
 2. **`[2. ACTION]` (Read-Only):** Run positional `<target>` or `--target "<target_path>" [--live-url "<url>"] --json` (`--dump-cdp-script`):
-   - Plugin path: `python "$HOME/.gemini/config/plugins/shredded-shape/skills/complex-zero/scripts/complex_zero_ast_auditor.py" "<target_path>" [--live-url "<url>"] --json`
+   - Plugin path (`pwsh`/POSIX): `uv run "$HOME/.gemini/config/plugins/shredded-shape/skills/complex-zero/scripts/complex_zero_ast_auditor.py" "<target_path>" [--live-url "<url>"] --json` (or `"%USERPROFILE%\.gemini\..."` in `cmd.exe`)
    - Fallback: `uv run python skills/complex-zero/scripts/complex_zero_ast_auditor.py "<target_path>" [--live-url "<url>"] --json`
    In Chrome DevTools MCP, run `navigate_page` -> `take_screenshot` -> `take_snapshot` -> `evaluate_script` (`CSS Overview`, `Issues`, `Performance Monitor`).
-3. **`[3. OBSERVATION]` (Read-Only):** Cross-check screenshot against probe JSON (`hierarchyMonotonic`, `crampedMenus`, duplicate tabs, exact W3C `2.4` gamma luminance, `text-rendering: auto` body typography) and AST checks (confined Ghost Nodes, `createContext` exemption, `{}` handlers, `setTimeout` stubs, legacy `reactflow`, sync `params.slug`).
+3. **`[3. OBSERVATION]` (Read-Only Terminal Bound for `ui-analyst`, `ui-planner`, `ui-judge`):** Cross-check screenshot against probe JSON (`hierarchyMonotonic`, `crampedMenus`, duplicate tabs, exact W3C `2.4` gamma luminance, `text-rendering: auto` body typography) and AST checks (confined Ghost Nodes, `createContext` exemption, `{}` handlers, `setTimeout` stubs, legacy `reactflow`, sync `params.slug`).
 4. **`[4. SELF-CORRECTION]` (`ui-worker` Only):** Fix cramped menus (`>= 13px`, `gap >= 0.5rem` / `8px`, `min-block-size >= 44px` including compact `::before` swatches & `input[type="range"]`), scope `:focus-visible` to interactive controls (suppress `<main tabindex="-1">` box outlines & add `<link rel="icon" type="image/svg+xml">`), apply `OKLCH 60-30-10` + 3-layer shadows + `@container`, batch `WebSocket` at `150ms` (`BATCH_UPDATE`), migrate Next.js 15+ routes to `Promise<...>` (`await params`), sanitize streamed HTML with `DOMPurify.sanitize()`, and verify `total_score >= 90/100`.
 
 ## Gotchas
