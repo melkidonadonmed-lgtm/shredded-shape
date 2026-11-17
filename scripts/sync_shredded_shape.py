@@ -36,17 +36,14 @@ def _copy_tree(src: Path, dst: Path) -> int:
 
 
 def sync_shredded_shape(repo_root: Path = ROOT_DIR, gemini_root: Path = DEFAULT_GEMINI_ROOT) -> Dict[str, Any]:
-    """Mirror repo Triad v2.1 docs and deploy plugin bundle physically without symlinks."""
-    triad_written = 0
-    for src_rel, dst_name in (
-        (Path(".agents") / "AGENTS.md", "AGENTS.md"),
-        (Path(".context") / "context.md", "CONTEXT.md"),
-        (Path(".context") / "spec.md", "SPEC.md"),
-    ):
-        src_f = repo_root / src_rel
-        if src_f.is_file():
-            shutil.copy2(src_f, repo_root / dst_name)
-            triad_written += 1
+    """Maintain canonical .context/{context,spec}.md without root mirrors and deploy plugin bundle."""
+    triad_cleaned = 0
+    for legacy_name in ("CONTEXT.md", "SPEC.md"):
+        legacy_path = repo_root / legacy_name
+        ctx_path = repo_root / ".context" / legacy_name.lower()
+        if legacy_path.is_file() and ctx_path.is_file():
+            legacy_path.unlink(missing_ok=True)
+            triad_cleaned += 1
 
     plugin_dst = gemini_root / "config" / "plugins" / "shredded-shape"
     if plugin_dst.exists():
@@ -74,7 +71,8 @@ def sync_shredded_shape(repo_root: Path = ROOT_DIR, gemini_root: Path = DEFAULT_
         "status": "SYNCHRONIZED",
         "plugin": "shredded-shape",
         "plugin_dst": str(plugin_dst),
-        "triad_mirrored": triad_written,
+        "triad_mirrored": 0,
+        "legacy_mirrors_cleaned": triad_cleaned,
         "plugin_files_copied": copied,
         "agents_synced": agents_copied,
     }
