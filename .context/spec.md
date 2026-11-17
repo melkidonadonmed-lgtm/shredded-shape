@@ -1,21 +1,20 @@
-# SPEC.MD — Implementation Contract: `shredded-shape` UI/UX Suite (v1.0.0)
+# SPEC.MD — Implementation Contract: `shredded-shape` UI/UX Suite (v1.4.0)
 
 ## 1. Objective and Boundaries (Scope Lock)
 - **What to build:**
-  1. Standalone UI/UX repository & Antigravity plugin (`C:\Users\melki\dev\repos\shredded-shape` synced to `C:\Users\melki\.gemini\config\plugins\shredded-shape\`) decoupled from `franklin-quebragalho`.
-  2. Interactive HTML Architecture Atlas (`assets/ui_skills_architecture_atlas.html`) showcasing the legacy `franklin-quebragalho` UI topology (`As-Is`), the separated 4-stage Actor-Critic suite (`To-Be`), and a live interactive 7-style laboratory (`Soft`, `Hi-Tech`, `Tactile`, `Elevated`, `Retro`, `Vintage`, `Clinical`) in dual Light/Dark modes.
-  3. 6 canonical skills (`ui-frontend-analyst`, `ui-brand-ux-planner`, `ui-clean-worker`, `ui-quality-judge`, `clinical-minimalist-ui`, `complex-zero`) + 4 declarative subagents (`ui-analyst.md`, `ui-planner.md`, `ui-worker.md`, `ui-judge.md`) + `plans/ui_actor_critic_dag.json` + deterministic scripts and tests.
+  1. Standalone UI/UX repository & Antigravity plugin (`C:\Users\melki\dev\repos\shredded-shape` synced to `C:\Users\melki\.gemini\config\plugins\shredded-shape\`) with `1.4.0` / `MIT` parity.
+  2. Modular 3-file 7-Chapter Atlas (`assets/ui_skills_architecture_atlas.html`, `assets/atlas_styles.css`, `assets/atlas_app.js` — `<= 600` lines each, zero external CDN, `file://`-compatible) uniting `To-Be`/`As-Is`, 7 real Style Archetypes, 12-Vector Anti-Slop + Stitch Radii, Mobile-First Adaptive Postures, 5-Plane `OKLCH` + Gradients, 4-Stage Shadows, Tactile Hardware + 5 Pseudoclasses, and Draggable `@container`/`subgrid`/`0fr` Menus.
+  3. 6 canonical skills (`<= 150`L L3 refs) + 4 declarative subagents (`send_message`, `max_steps` `10/8/16/8`, `<= 5` rules/node) + unified positional/`--target` CLI scripts.
 - **Non-Goals (Forbidden):**
-  - Never mutate third-party read-only skill `C:\Users\melki\.agents\skills\design-taste-frontend\`.
-  - Never duplicate global plugin skill folders inside per-repo `.agents/skills.json`.
-  - Never allow `../` relative link escapes in `SKILL.md`, UI emojis, `#000000` dark canvases, neon colors, or explanatory prose clutter in interfaces.
+  - Never mutate read-only `C:\Users\melki\.agents\skills\design-taste-frontend\`.
+  - Never introduce gatekeeper bypass flags (`data-slop-demo`), AudioContext synthesizers, external CDN scripts, `#000000`, neon glows, blur blobs, confetti badges, or dashed wireframes.
 
 ## 2. Data Contracts and Interfaces (I/O)
-- **Strict Schemas (`extra="forbid"`):** `UIExecutionDAG` (`ui_dag_compiler.py`, `max_rules_per_node <= 5`, zero parallel file collisions), `FrontendInventoryReport` (`frontend_inventory_and_slop_scanner.py`), `RAWVerificationResult` (`verify_raw_frontend.py` with SHA-256), and `UIJudgeReport` (`ui_judge_gatekeeper.py` with WCAG 2.2 OKLCH contrast $FNR < 0.001$).
-- **Plugin Bundle (`plugin.json`):** Only official keys (`$schema`, `name`, `displayName`, `version`, `description`, `author`, `homepage`, `repository`, `license`, `keywords`, `logo`, `suggestedPrompts`).
+- **Strict Schemas (`extra="forbid"`):** `UIExecutionDAG` (`normalize_style_archetype`, optional `--out`), `FrontendInventoryReport`, `RAWVerificationResult` (SHA-256 + wireframes/confetti/reflow/600L/fail-closed `--run-tsc`), and `UIJudgeReport` (polarity-isolated OKLab contrast + `.sus-grid` AAA).
+- **Plugin Bundle (`plugin.json`):** Version `"1.4.0"`, License `"MIT"`, synced to `~/.gemini/config/plugins/shredded-shape/`.
 
 ## 3. Acceptance and Exit Criteria (Definition of Done)
-- [ ] `uv run python scripts/validate_shredded_shape.py --strict` passes `6/6` skills and `4/4` subagents with exit code `0`.
-- [ ] `uv run pytest -q` passes 100% including adversarial validation, WCAG 2.2 OKLCH math, RAW SHA-256, and $F_1 = 1.0$ trigger evals.
-- [ ] `ui_skills_architecture_atlas.html` scores `PASSED` and `ai_slop_score == 0` under both `ui-frontend-analyst` and `ui-quality-judge`.
-- [ ] `sync_shredded_shape.py` deploys the plugin cleanly to `C:\Users\melki\.gemini\config\plugins\shredded-shape\`.
+- [x] `uv run python scripts/validate_shredded_shape.py --strict` passes `6/6` skills and `4/4` subagents with exit code `0`.
+- [x] `uv run pytest -v` passes 100% including adversarial validation, polarity isolation, multi-file DOM evaluation, CLI smoke tests, and $F_1 = 1.0$ trigger evals.
+- [x] Unified 3-file Atlas passes `frontend_inventory_and_slop_scanner.py` (`ai_slop_score == 0`), `verify_raw_frontend.py`, `ui_judge_gatekeeper.py --composite` (`PASSED`, Readiness `100.0`, 6-Dim `100.0`), and `complex_zero_ast_auditor.py` (`100/100`).
+- [x] `sync_shredded_shape.py` deploys cleanly to `C:\Users\melki\.gemini\config\plugins\shredded-shape\`.
