@@ -5,8 +5,8 @@ license: MIT
 compatibility: "Antigravity 2.0 / Claude Code / Gemini CLI with Python 3.12+ (uv) and Modern CSS"
 metadata:
   author: shredded-shape
-  version: "1.4.0"
-  updated_at: "2026-11-17"
+  version: "1.5.0"
+  updated_at: "2026-11-18"
   category: domain-ui-pack
   tags:
     - clinical
@@ -47,7 +47,7 @@ Respect strict **Stage Role Guards**: operate **read-only** when bound inside `u
 ## Gotchas
 - **Stage Role Isolation:** Never write files when invoked from read-only `ui-planner` or `ui-judge` personas; emit token specifications or `--wcag AAA` rejection findings only.
 - **Clinical Alert Red Exception:** True critical alerts use `15°..40°` hue with `C <= 0.24` (e.g. `#ef4444`); arbitrary magenta/cyan neons remain strictly forbidden.
-- **Print Ink Bleeding:** Leaving dark glass fills or Screen `box-shadow` active inside `@media print` ruins medical prescriptions.
+- **Print Ink Bleeding & Template Isolation:** Leaving dark glass fills or screen `box-shadow` active inside `@media print` ruins medical prescriptions; static `.ts` HTML prescription catalogs (`susDocumentsCatalog`) must stay isolated from interactive screen `globals.css` (`>= 12px` legibility remains mandatory for all interactive UI controls).
 
 ## Output
 - WCAG AAA compliant PEP/EHR layout, deterministic medical calculator UI, and pixel/millimeter-clean A4 `.sus-grid` print CSS verified by `ui_judge_gatekeeper.py --wcag AAA`.

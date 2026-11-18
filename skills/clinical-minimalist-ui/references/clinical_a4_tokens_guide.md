@@ -118,3 +118,4 @@ Tier-3 implementation reference for `clinical-minimalist-ui`, enforcing **WCAG 2
 }
 ```
 - Presence of `clinical-day`, `clinical-night`, or `.sus-grid` triggers automatic `WCAG AAA (>= 7.0:1)` verification in `ui_judge_gatekeeper.py --composite`.
+- `_ss_guards.strip_print_sheet_contexts()` masks `@media print`/`.sus-grid` CSS blocks and `.ts` A4 HTML prescription templates (`susDocumentsCatalog`, `presetClinicalTemplates`) while `find_print_shadow_leaks()` fails non-`none` `box-shadow` declarations left active inside `@media print`, and interactive `globals.css` remains subject to `>= 12px` legibility checks.

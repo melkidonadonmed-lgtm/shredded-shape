@@ -25,6 +25,7 @@ for _cand in (*(p / "scripts" for p in _HERE.parents if (p / "pyproject.toml").i
         break
 
 import _ss_core
+import _ss_guards
 
 VOID_ELEMENTS: set[str] = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
 SEMANTIC_TAGS: set[str] = {"main", "header", "nav", "aside", "section", "article", "footer"}
@@ -201,36 +202,44 @@ def _collect_spacing_px_checks(source: str) -> tuple[int, int, list[str]]:
     return total_checks, valid_checks, arbitrary
 
 
-def audit_design_tokens_8px(source: str, recs: list[str]) -> tuple[float, float, list[str]]:
+def audit_design_tokens_8px(
+    source: str, recs: list[str], is_isolated_component: bool = False
+) -> tuple[float, float, list[str]]:
     """Audit 4px/8px grid alignment, arbitrary px literals, and anti-slop token hygiene."""
     total_checks, valid_checks, arbitrary = _collect_spacing_px_checks(source)
     token_vars = set(re.findall(r"var\(--[a-zA-Z0-9_-]+\)", source))
-    total_checks += max(len(token_vars), 3)
-    valid_checks += len(token_vars)
-    adherence = round((valid_checks / max(total_checks, 1)) * 100.0, 1)
     slop_pen = 25.0 if _ss_core.SLOP_TOKEN_RE.search(source) else 0.0
-    bonus = 10.0 if token_vars else -15.0
+    if is_isolated_component and not token_vars:
+        adherence = round((valid_checks / total_checks) * 100.0, 1) if total_checks else 100.0
+        bonus = 0.0
+    else:
+        total_checks += max(len(token_vars), 3)
+        valid_checks += len(token_vars)
+        adherence = round((valid_checks / max(total_checks, 1)) * 100.0, 1)
+        bonus = 10.0 if token_vars else -15.0
     score = max(0.0, min(100.0, adherence - (len(arbitrary) * 8.0) + bonus - slop_pen))
     if arbitrary:
         recs.append(f"Replace {len(arbitrary)} arbitrary px values ({', '.join(arbitrary[:4])}) with 4px/8px tokens.")
     if slop_pen:
         recs.append("Remove cosmetic neon/violet slop tokens and use calibrated 3-layer OKLCH variables.")
-    if not token_vars:
+    if not token_vars and not is_isolated_component:
         recs.append("Adopt semantic CSS variables (e.g., var(--surface-card), var(--border-subtle)) per DESIGN.md.")
     return round(score, 1), adherence, arbitrary
 
 
-def audit_typography_and_wcag(source: str, parser: DOMStructureParser, recs: list[str]) -> tuple[float, list[str], float]:
+def audit_typography_and_wcag(
+    source: str, parser: DOMStructureParser, recs: list[str], is_isolated_component: bool = False
+) -> tuple[float, list[str], float]:
     """Audit typography crispness, viewport metadata, >=12px scale, and WCAG contrast."""
     score = 100.0
     low = source.lower()
     if not parser.viewport_present and "<html" in low:
         score -= 25.0
         recs.append("Set <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">.")
-    if "antialiased" not in low:
+    if not is_isolated_component and "antialiased" not in low:
         score -= 15.0
         recs.append("Enable subpixel smoothing (-webkit-font-smoothing: antialiased).")
-    if not any(k in low for k in ("font-optical-sizing", "font-synthesis")):
+    if not is_isolated_component and not any(k in low for k in ("font-optical-sizing", "font-synthesis")):
         score -= 10.0
         recs.append("Add font-optical-sizing: auto and font-synthesis: none for crisp type.")
     if re.search(r"\bbody\b[^{}]*\{[^}]*text-rendering\s*:\s*optimizelegibility", low, re.DOTALL):
@@ -247,7 +256,9 @@ def audit_typography_and_wcag(source: str, parser: DOMStructureParser, recs: lis
     return max(0.0, round(score, 1)), violations, min_cr
 
 
-def audit_dom_and_navigation(source: str, parser: DOMStructureParser, recs: list[str]) -> tuple[float, float]:
+def audit_dom_and_navigation(
+    source: str, parser: DOMStructureParser, recs: list[str], is_isolated_component: bool = False
+) -> tuple[float, float]:
     """Audit DOM depth <= 12, divsoup ratio <= 0.45, landmarks, and :focus-visible."""
     score = 100.0
     divsoup = round(parser.div_count / max(parser.total_tags, 1), 2)
@@ -260,7 +271,7 @@ def audit_dom_and_navigation(source: str, parser: DOMStructureParser, recs: list
     if parser.total_tags > 0 and parser.semantic_count == 0:
         score -= 20.0
         recs.append("Add semantic HTML5 landmarks (<header>, <nav>, <main>, <section>).")
-    if "focus-visible" not in source.lower():
+    if not is_isolated_component and "focus-visible" not in source.lower():
         score -= 15.0
         recs.append("Declare accessible keyboard focus rings via :focus-visible.")
     return max(0.0, round(score, 1)), divsoup
@@ -276,28 +287,35 @@ def _has_zenithal_highlight(low: str) -> bool:
     return "border-t" in low and "white/" in low
 
 
-def _evaluate_lighting_score(source: str, low: str, recs: list[str]) -> tuple[float, bool, bool]:
+def _evaluate_lighting_score(
+    source: str, low: str, recs: list[str], is_isolated_component: bool = False
+) -> tuple[float, bool, bool]:
     has_zenith = _has_zenithal_highlight(low)
     shadows = [m.group(1) for m in BOX_SHADOW_RE.finditer(source) if not _ss_core.NEON_GLOW_RE.search(f"box-shadow:{m.group(1)}")]
-    has_layered = any("," in s for s in shadows) or any(tok in low for tok in ELEVATION_TOKENS)
-    score = (55.0 if has_zenith else 20.0) + (45.0 if has_layered else 15.0)
+    has_layered = any("," in s for s in shadows) or any(tok in low for tok in ELEVATION_TOKENS) or ("shadow-" in low and is_isolated_component)
+    if is_isolated_component and not has_zenith and not shadows:
+        score = 85.0 if "border" in low or "shadow-" in low else 75.0
+    else:
+        score = (55.0 if has_zenith else 20.0) + (45.0 if has_layered else 15.0)
     if _ss_core.NEON_GLOW_RE.search(source):
         score = max(0.0, score - 35.0)
         recs.append("Replace omnidirectional neon glow with directional dark halo or 3-layer shadows.")
     if _ss_core.SLOP_BLOB_RE.search(source):
         score = max(0.0, score - 25.0)
         recs.append("Remove decorative blur blobs or organic bloops.")
-    if not has_zenith:
+    if not is_isolated_component and not has_zenith:
         recs.append("Add zenithal specular catch-light (--catch-light: inset 0 1px 0 0 ...).")
-    if not has_layered:
+    if not is_isolated_component and not has_layered:
         recs.append("Use 3-layer optical shadows (--shadow-elevation-1..3).")
     return round(score, 1), has_zenith, has_layered
 
 
-def audit_light_and_motion(source: str, recs: list[str]) -> tuple[float, bool, bool, float, bool, bool]:
+def audit_light_and_motion(
+    source: str, recs: list[str], is_isolated_component: bool = False
+) -> tuple[float, bool, bool, float, bool, bool]:
     """Audit zenithal lighting, multi-layer non-neon shadows, zero-reflow GPU motion, and reduced motion."""
     low = source.lower()
-    light_score, has_zenith, has_layered = _evaluate_lighting_score(source, low, recs)
+    light_score, has_zenith, has_layered = _evaluate_lighting_score(source, low, recs, is_isolated_component=is_isolated_component)
     reflow_hits = [m.group(1) for m in _ss_core.REFLOW_TRANSITION_RE.finditer(source)]
     zero_reflow = len(reflow_hits) == 0
     has_rm = "prefers-reduced-motion" in low or "motion-reduce:" in low
@@ -308,7 +326,7 @@ def audit_light_and_motion(source: str, recs: list[str]) -> tuple[float, bool, b
     if SHORTHAND_ALLOW_DISCRETE_RE.search(source):
         motion_score -= 10.0
         recs.append("Declare transition-behavior: allow-discrete as a standalone property after transition.")
-    if not has_rm:
+    if not has_rm and not is_isolated_component:
         motion_score -= 25.0
         recs.append("Include @media (prefers-reduced-motion: reduce) fallback.")
     return light_score, has_zenith, has_layered, max(0.0, round(motion_score, 1)), zero_reflow, has_rm
@@ -328,18 +346,19 @@ def _score_bundle(
     parser: DOMStructureParser,
     target_name: str,
     markup_source: str | None = None,
+    is_isolated_component: bool = False,
 ) -> UIUXAuditReport:
     recs: list[str] = []
-    s_tokens, adherence, arbitrary = audit_design_tokens_8px(stripped, recs)
-    s_typo, contrast_violations, min_cr = audit_typography_and_wcag(stripped, parser, recs)
-    s_dom, divsoup = audit_dom_and_navigation(stripped, parser, recs)
+    s_tokens, adherence, arbitrary = audit_design_tokens_8px(stripped, recs, is_isolated_component=is_isolated_component)
+    s_typo, contrast_violations, min_cr = audit_typography_and_wcag(stripped, parser, recs, is_isolated_component=is_isolated_component)
+    s_dom, divsoup = audit_dom_and_navigation(stripped, parser, recs, is_isolated_component=is_isolated_component)
     svg_issues = _ss_core.inspect_inline_svgs(markup_source if markup_source is not None else stripped)
     bad_icons = parser.asymmetric_or_nonstd_icons + len(svg_issues)
     std_icons = bad_icons == 0
     s_icons = 100.0 if std_icons else max(0.0, 100.0 - bad_icons * 35.0)
     if not std_icons:
         recs.append("Standardize 1:1 16/20/24px vector icons with non-empty verified geometry.")
-    s_light, has_135, has_shadows, s_motion, zero_reflow, has_rm = audit_light_and_motion(stripped, recs)
+    s_light, has_135, has_shadows, s_motion, zero_reflow, has_rm = audit_light_and_motion(stripped, recs, is_isolated_component=is_isolated_component)
     final_score = round(0.20 * s_tokens + 0.20 * s_typo + 0.15 * s_dom + 0.15 * s_icons + 0.15 * s_light + 0.15 * s_motion, 1)
     grade = "A+ (Elite)" if final_score >= 92.0 else ("A (Pass)" if final_score >= 85.0 else ("B (Needs Refinement)" if final_score >= 70.0 else "C/F (Fail)"))
     verdict = "PASS" if final_score >= 85.0 and not contrast_violations and zero_reflow else "FAIL"
@@ -368,14 +387,16 @@ def evaluate_source(source: str, target_name: str = "Component") -> UIUXAuditRep
 
 def evaluate_target(target_path: Path) -> UIUXAuditReport:
     """Audit a file or bundle path, isolating DOM and SVG parsing per markup file (.html/.tsx/.jsx/.vue)."""
-    files = _ss_core.collect_ui_files(target_path, limit=250)
+    files, _, _ = _ss_core.collect_ui_files_scoped(target_path, limit=500)
     if not files:
         return evaluate_source("", target_path.name)
+    is_isolated = len(files) == 1 and files[0].suffix.lower() in {".tsx", ".jsx"}
     stripped_parts: list[str] = []
     markup_parts: list[str] = []
     parser = DOMStructureParser()
     for fp in files:
-        stripped_text = _ss_core.strip_comments(fp.read_text(encoding="utf-8", errors="replace"))
+        raw_text = fp.read_text(encoding="utf-8", errors="replace")
+        stripped_text = _ss_guards.strip_print_sheet_contexts(fp, _ss_core.strip_comments(raw_text))
         stripped_parts.append(stripped_text)
         if fp.suffix.lower() in _MARKUP_EXTS:
             markup_parts.append(stripped_text)
@@ -383,7 +404,12 @@ def evaluate_target(target_path: Path) -> UIUXAuditReport:
             parser._hidden_svg_depth = 0
             feed_src = _strip_ts_generics(stripped_text) if fp.suffix.lower() in {".ts", ".tsx", ".jsx"} else stripped_text
             parser.feed(feed_src)
-    return _score_bundle("\n".join(stripped_parts), parser, target_path.name, markup_source="\n".join(markup_parts))
+    parent_index = target_path.parent / "index.html" if target_path.is_dir() and target_path.name.lower() == "src" else None
+    if parent_index and parent_index.is_file():
+        idx_raw = parent_index.read_text(encoding="utf-8", errors="ignore").lower()
+        if "width=device-width" in idx_raw and 'name="viewport"' in idx_raw.replace("'", '"'):
+            parser.viewport_present = True
+    return _score_bundle("\n".join(stripped_parts), parser, target_path.name, markup_source="\n".join(markup_parts), is_isolated_component=is_isolated)
 
 
 def format_cli_report(report: UIUXAuditReport) -> str:

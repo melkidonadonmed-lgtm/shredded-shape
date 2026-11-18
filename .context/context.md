@@ -1,5 +1,5 @@
 # CONTEXT.MD — Authoritative Project State (`shredded-shape`)
-> **Last Updated:** 2026-11-17 | **Status:** `ACTIVE` | **Version:** `1.4.0`
+> **Last Updated:** 2026-11-18 | **Status:** `ACTIVE` | **Version:** `1.5.0`
 
 ## 1. Overview & Current Architecture
 - **Purpose:** Dedicated UI/UX Architecture, Forensic DevTools Analyst, Brand & Style Planner, Clean Optical Worker, and WCAG 2.2 OKLCH Actor-Critic Judge suite packaged as the `shredded-shape` Antigravity plugin.
@@ -10,15 +10,19 @@
   - `"rules/"`: `frontend-9-axes-guidelines.md` (9-Axis SSOT + 5-Plane `OKLCH` + Mobile-First postures + `color-mix(in oklab)`).
   - `"plans/"`: `ui_actor_critic_dag.json` (4-stage bounded DAG with `<= 5` rules/node, `ui-worker max_steps: 16`, and closed-loop Self-Refine edge).
   - `"assets/"`: `logo.svg` + modular 3-file Unified 7-Chapter Atlas (`ui_skills_architecture_atlas.html`, `atlas_styles.css`, `atlas_app.js` — `<= 600` lines each, zero external CDN, `file://`-compatible).
-  - `"scripts/"` & `"tests/"`: `_ss_core.py`, `validate_shredded_shape.py`, `sync_shredded_shape.py`, and `test_shredded_shape_suite.py`.
+  - `"scripts/"` & `"tests/"`: `_ss_core.py`, `_ss_guards.py`, `validate_shredded_shape.py`, `sync_shredded_shape.py`, `test_shredded_shape_suite.py`, and `test_v150_gatekeeper_calibration.py`.
 
 ## 2. Critical Technical Decisions (Do Not Violate)
 - **`[SSOT-UI-01]` Perceptual 5-Plane `OKLCH 60-30-10` & 12-Vector Anti-AI-Slop Gate:** Never use `#000000`, `C > 0.22` accents (`C <= 0.24` semantic red `15°..40°` only), neon glows, blur blobs, confetti badges, dashed wireframes, reflow animations (`all`, `width`, `height`), or visual/tab desync. Use `color-mix(in oklab, ...)` for UI mixing.
 - **`[SSOT-UI-02]` Polarity-Isolated Verification & Physical Depth:** Resolve `[data-theme="<name>"]`, `.dark`/`.light`, and `@media (prefers-color-scheme)` blocks isolated by polarity over `:root:light`/`:root:dark`, enforcing `well < canvas < card < card-lit` in Dark Mode and 3-layer/135° depth in Light Mode.
-- **`[SSOT-UI-03]` Bounded Actor-Critic Isolation (`<= 5` rules/node):** Keep `ui-analyst`, `ui-planner`, and `ui-judge` strictly read-only (`sandbox`), require SHA-256 `Read-After-Write` verification from `ui-worker` with fail-closed `--run-tsc`, and zero gatekeeper bypass flags.
+- **`[SSOT-UI-03]` Bounded Actor-Critic Isolation (`<= 5` rules/node) & Fail-Closed Scope:** Keep `ui-analyst`, `ui-planner`, and `ui-judge` strictly read-only (`sandbox`), return fail-closed `UNVERIFIED` when scans truncate or narrow to `styles/`, require SHA-256 `Read-After-Write` verification from `ui-worker` with fail-closed `--run-tsc`, and keep zero gatekeeper bypass flags.
 - **`[SSOT-UI-04]` Technical English Internals + `pt-BR` Bridge (`[LOCK-04]`):** Author all code, skills, references, rules, and subagents in Technical English; deliver all user communication and Atlas UI copy in **Portuguese (`pt-BR`)**.
 
 ## 3. Recent Changes (Changelog)
+- `[2026-11-18]` **`v1.5.0` — `TASK-05` Refined Finishing & Gatekeeper Calibration (`[GAP-01..06]`):**
+  - Added `scripts/_ss_guards.py` (vendored to all `skills/*/scripts/_ss_guards.py`) and `collect_ui_files_scoped()` in `scripts/_ss_core.py` excluding `__tests__/`, `tests/`, `__mocks__/`, `*.test.*`, `*.spec.*`, and `.stories.*` while surfacing exact `files_total_eligible` and `truncated` metadata.
+  - Calibrated print/test isolation (`strip_print_sheet_contexts()` for `.ts` A4 templates and `@media print`/`.sus-grid`, `find_print_shadow_leaks()`, sibling `index.html` viewport lookup, isolated single-`.tsx` scoring in `ui_ux_frontend_auditor.py`) alongside balanced JSX `<div onClick>` parsing (`find_unsemantic_div_clicks()` exempting `stopPropagation()` and dismiss backdrops while flagging real `CidSearchBar.tsx` hits at exact lines), `find_pseudo_icon_hits()`, and `find_target_size_overrides()`.
+  - Extended `UIJudgeReport` with `scope_path`, `files_total_eligible`, `truncated`, `scope_narrowed`, and `unverified_routes` (fail-closed `UNVERIFIED` on truncation or `styles/` narrowing); added `emoji_hits` hard blocker, pseudo-icons, target overrides, state/hash routes, and Go MCP UI detection to `frontend_inventory_and_slop_scanner.py`; expanded `devtools_live_probe.js` (`interactiveTotal`, `pseudoIconControls`, `clippedControls`, `routeManifest`, `openOverlaysInspected`); updated `sync_shredded_shape.py` (`GEMINI_CONFIG_HOME`, removed `triad_mirrored`), `validate_shredded_shape.py` (dynamic agent count & `_ss_*.py` parity), descriptions, L3 guides, and `tests/test_v150_gatekeeper_calibration.py`.
 - `[2026-11-17]` **`v1.4.0` — Global 4-Component Ecosystem Audit & CoT/ToT/ReAct/RAW Standardization**:
   - Unified `max_steps` (`10/8/16/8`), `reasoning_pattern` (`CoT`/`ToT`/`ReAct`/`Self-Refine`), `stop_condition`, `domain_skills`, `max_self_refine_rounds: 3`, and `ui-worker` `DESIGN.md` materialization in `plans/ui_actor_critic_dag.json` and `AGENTS.md`.
   - Added explicit `Axis 1`..`Axis 9` headings to `rules/frontend-9-axes-guidelines.md`, structured all 4 `agents/ui-*.md` and 6 `skills/*/SKILL.md` with `CoT -> ToT -> ReAct -> RAW` cognitive phases and `uv run "$HOME/..."` fallback commands (preserving byte-for-byte LF parity with `sync_gemini_ecosystem.py` and `.agents/agents/ui-*.md`), completed the 6 required Pydantic fields in `design_md_and_plan_template.md`, and aligned `.agents/skills.json`.
@@ -47,3 +51,4 @@
 ## 4. Backlog & Next Steps (Execution Queue)
 - [x] `TASK-01..03`: Bootstrap repository, 4-stage Actor-Critic suite, and `v1.4.0` EGM remediation + Unified 7-Chapter Atlas.
 - [ ] `TASK-04`: Connect `shredded-shape` remote GitHub repository when requested by user.
+- [x] `TASK-05`: Implemented `v1.5.0` Refined Finishing & Gatekeeper Calibration Upgrade (`[GAP-01..06]`) per [`.context/refined-finishing-gap-analysis-2026-11-17.md`](refined-finishing-gap-analysis-2026-11-17.md).

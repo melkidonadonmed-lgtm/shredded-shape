@@ -254,12 +254,19 @@ def _check_parity_and_line_caps(repo_root: Path, errors: list[str]) -> None:
         for name, src in src_files.items():
             if name in dst_files and src.read_text("utf-8").replace("\r\n", "\n") != dst_files[name].read_text("utf-8").replace("\r\n", "\n"):
                 errors.append(f"[FAIL] .agents/agents/{name} drifted from agents/{name}")
-    core_src = repo_root / "scripts" / "_ss_core.py"
-    if core_src.is_file() and (repo_root / "skills").is_dir():
-        core_norm = core_src.read_text("utf-8").replace("\r\n", "\n")
-        for vendored in sorted((repo_root / "skills").glob("*/scripts/_ss_core.py")):
-            if vendored.read_text("utf-8").replace("\r\n", "\n") != core_norm:
-                errors.append(f"[FAIL] Vendored {vendored.relative_to(repo_root)} drifted from scripts/_ss_core.py")
+    for shared_src in sorted((repo_root / "scripts").glob("_ss_*.py")):
+        if not (repo_root / "skills").is_dir():
+            break
+        shared_norm = shared_src.read_text("utf-8").replace("\r\n", "\n")
+        for s_dir in sorted(d for d in (repo_root / "skills").iterdir() if d.is_dir() and not d.name.startswith(".")):
+            scripts_dir = s_dir / "scripts"
+            if not scripts_dir.is_dir():
+                continue
+            vendored = scripts_dir / shared_src.name
+            if not vendored.is_file():
+                errors.append(f"[FAIL] Missing vendored {vendored.relative_to(repo_root)}")
+            elif vendored.read_text("utf-8").replace("\r\n", "\n") != shared_norm:
+                errors.append(f"[FAIL] Vendored {vendored.relative_to(repo_root)} drifted from scripts/{shared_src.name}")
     for folder in ("scripts", "assets", "tests"):
         _check_folder_line_caps(repo_root, folder, errors)
 
@@ -371,10 +378,14 @@ def main() -> int:
     parser.add_argument("--strict", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--root", default=str(Path(__file__).resolve().parent.parent))
     args = parser.parse_args()
-    passed, total, errors = validate_repository(Path(args.root).resolve(), strict_mode=bool(args.strict))
+    root_dir = Path(args.root).resolve()
+    passed, total, errors = validate_repository(root_dir, strict_mode=bool(args.strict))
+    agent_files = sorted((root_dir / "agents").glob("*.md")) if (root_dir / "agents").is_dir() else []
+    agent_errors = sum(1 for e in errors if any(af.name in e for af in agent_files))
+    agent_ok = max(0, len(agent_files) - agent_errors)
     for err in errors:
         print(err)
-    print(f"shredded-shape validation: {passed}/{total} skills | 4/4 subagents | errors={len(errors)}")
+    print(f"shredded-shape validation: {passed}/{total} skills | {agent_ok}/{len(agent_files)} subagents | errors={len(errors)}")
     return 1 if errors or total == 0 else 0
 
 

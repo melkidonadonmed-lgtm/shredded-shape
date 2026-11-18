@@ -1,12 +1,12 @@
 ---
 name: ui-brand-ux-planner
-description: "Use when planning brand identity, 5-plane OKLCH 60-30-10 tokens, 7 style archetypes (Soft, Hi-Tech, Tactile, Elevated, Retro, Vintage, Clinical), 6 Spatial Archetypes, Google Stitch spacing, Figma MCP, Google Fonts typography, verified 24x24 Lucide/Material SVGs, 3D Unity assets, DESIGN.md blueprints, and <=5-rule DAGs. Do NOT use for live Chrome DevTools audits or writing UI code."
+description: "Use when planning brand identity, 5-plane OKLCH 60-30-10 tokens, 7 style archetypes (Soft, Hi-Tech, Tactile, Elevated, Retro, Vintage, Clinical), 6 Spatial Archetypes, Google Stitch spacing, Figma MCP, Google Fonts, verified 24x24 SVGs, 3D Unity assets, DESIGN.md blueprints, and <=5-rule DAGs. Do NOT use for live DevTools audits or writing code."
 license: MIT
 compatibility: "Antigravity 2.0 / Claude Code / Gemini CLI with Python 3.12+ (uv) and Pydantic v2"
 metadata:
   author: shredded-shape
-  version: "1.4.0"
-  updated_at: "2026-11-17"
+  version: "1.5.0"
+  updated_at: "2026-11-18"
   category: frontend-planning
   tags:
     - design-md

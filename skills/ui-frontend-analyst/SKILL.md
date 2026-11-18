@@ -1,12 +1,12 @@
 ---
 name: ui-frontend-analyst
-description: "Use when auditing an existing frontend app via Chrome DevTools (CSS Overview, Issues, INP/LCP), AST inventory, REA bundle inspection, web.dev, and modern-web-guidance to expose tokens, colors, fonts, mixed icons, >600-line splits, and 12-vector AI Slop, emitting a 7-section CLAREZA Before/After navigation diagram. Do NOT use for planning brand systems, writing code, or backend-only audits."
+description: "Use when auditing existing frontend apps via DevTools (CSS Overview, INP/LCP, scrollWidth clip), AST inventory, REA bundles, modern-web-guidance, and 12-vector Anti-Slop (Unicode glyphs, <40px targets, >600L splits), emitting a 7-section CLAREZA diagram. Do NOT use for planning brand systems, writing code, or backend-only audits."
 license: MIT
 compatibility: "Antigravity 2.0 / Claude Code / Gemini CLI with Python 3.12+ (uv) and Chrome DevTools"
 metadata:
   author: shredded-shape
-  version: "1.4.0"
-  updated_at: "2026-11-17"
+  version: "1.5.0"
+  updated_at: "2026-11-18"
   category: frontend-audit
   tags:
     - chrome-devtools
@@ -34,7 +34,7 @@ Execute strictly in causal Chain-of-Thought (`CoT`) order without mutating targe
      - Plugin path (`pwsh`/POSIX): `uv run "$HOME/.gemini/config/plugins/shredded-shape/skills/ui-frontend-analyst/scripts/frontend_inventory_and_slop_scanner.py" <target> --json` (or `"%USERPROFILE%\.gemini\..."` in `cmd.exe`)
      - Repo fallback: `uv run python skills/ui-frontend-analyst/scripts/frontend_inventory_and_slop_scanner.py <target> --json`
    - If `@xyflow/react` or live telemetry appears, chain `complex-zero` (`complex_zero_ast_auditor.py <target> --json`, halting at `[3. OBSERVATION]`). If auditing compiled JS/Electron bundles, run `rea` (`analyze_web_bundle` / `inspect_web_page`).
-   - Flag any `.py/.js/.ts/.tsx/.html/.css` file exceeding `600` lines for modular decomposition.
+   - Flag any `.py/.js/.ts/.tsx/.html/.css` file exceeding `600` lines for modular decomposition, Unicode/ASCII pseudo-icons (`+`/`×`/`≡`/`▾`/`▸`), and CSS/Tailwind interactive hit targets `< 40px` (always scan project `src/` root excluding `__tests__`).
 
 2. **Phase 2 (`[CoT-2]`) — Modern Web Guidance & 12-Vector Anti-AI-Slop Debt Check:**
    - Activate the installed `modern-web-guidance` plugin skill **first** for HTML/CSS/DOM diagnostics (or fall back to local L3 references if offline in sandbox).
@@ -42,7 +42,7 @@ Execute strictly in causal Chain-of-Thought (`CoT`) order without mutating targe
 
 3. **Phase 3 (`[CoT-3]`) — Live Chrome DevTools & `web.dev` CWV Telemetry Probe:**
    - Load [`references/devtools_webdev_and_modernweb_probe.md`](references/devtools_webdev_and_modernweb_probe.md) alongside `chrome-devtools-plugin` skills (`chrome-devtools`, `a11y-debugging`, `debug-optimize-lcp`, `memory-leak-debugging`).
-   - Run [`scripts/devtools_live_probe.js`](scripts/devtools_live_probe.js) via `evaluate_script` and capture DevTools `CSS Overview`, `Issues`, `Performance Monitor`, INP (`<= 200ms`), and LCP (`<= 2.5s`).
+   - Run [`scripts/devtools_live_probe.js`](scripts/devtools_live_probe.js) via `evaluate_script` and capture DevTools `CSS Overview`, `Issues`, `Performance Monitor`, `routeManifest`, `clippedControlsCount`, `openOverlaysInspected`, INP (`<= 200ms`), and LCP (`<= 2.5s`).
 
 4. **Phase 4 (`[CoT-4]`) — 7-Section CLAREZA Synthesis & Stage 1 Handoff:**
    - Compile the **7-Section CLAREZA** output formatted per [`references/navigation_diagram_and_before_after_patterns.md`](references/navigation_diagram_and_before_after_patterns.md), including valid `As-Is` and `To-Be` Mermaid flows and recommended `(style_archetype, spatial_archetype)` inputs for `ui-brand-ux-planner`.

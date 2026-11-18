@@ -31,17 +31,27 @@
 
   const isCoarse = typeof window.matchMedia === 'function' && window.matchMedia('(any-pointer: coarse)').matches;
   const minTargetPx = isCoarse ? 48 : 44;
+  const pseudoIconRe = /[✕✖✗✘≡⋮⋯▾▸▴◂▼▲▶◀☰⚙★☆🗑✎✏]|^[+×←→↑↓✓✔]$/;
+  const pseudoIconControls = [];
+  const clippedControls = [];
 
   for (const el of interactive.slice(0, 200)) {
     const rect = el.getBoundingClientRect();
     const style = getComputedStyle(el);
+    const labelText = (el.textContent || el.getAttribute('aria-label') || '').trim();
     if (rect.width > 0 && rect.height > 0 && (rect.width < minTargetPx || rect.height < minTargetPx)) {
       smallTargets.push({
         tag: el.tagName.toLowerCase(),
-        text: (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 32),
+        text: labelText.slice(0, 32),
         width: Math.round(rect.width),
         height: Math.round(rect.height),
       });
+    }
+    if (labelText && pseudoIconRe.test(labelText)) {
+      pseudoIconControls.push({ tag: el.tagName.toLowerCase(), text: labelText.slice(0, 24) });
+    }
+    if (el.scrollWidth > el.clientWidth + 1 && style.overflowX !== 'visible') {
+      clippedControls.push({ tag: el.tagName.toLowerCase(), text: labelText.slice(0, 32), scrollWidth: el.scrollWidth, clientWidth: el.clientWidth });
     }
     colors.add(style.color);
     colors.add(style.backgroundColor);
@@ -115,5 +125,16 @@
     orphanedInputsCount,
     emojiCount: emojiMatches.length,
     emojiHits: emojiMatches.length,
+    interactiveTotal: interactive.length,
+    interactiveTruncated: interactive.length > 200,
+    pseudoIconControlsCount: pseudoIconControls.length,
+    pseudoIconControlsSample: pseudoIconControls.slice(0, 15),
+    clippedControlsCount: clippedControls.length,
+    clippedControlsSample: clippedControls.slice(0, 15),
+    routeManifest: Array.from(document.querySelectorAll('[role="tab"], a[href], button[data-route]'))
+      .map((el) => (el.getAttribute('href') || el.getAttribute('data-route') || el.textContent || '').trim())
+      .filter(Boolean)
+      .slice(0, 30),
+    openOverlaysInspected: document.querySelectorAll('dialog[open], [role="dialog"]:not([aria-hidden="true"]), [popover]:popover-open').length,
   };
 })();

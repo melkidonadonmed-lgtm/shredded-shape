@@ -1,12 +1,12 @@
 ---
 name: ui-clean-worker
-description: "Use when implementing or refactoring React 19, Next.js 15, Tailwind v4, or HTML/CSS UIs from DESIGN.md with 3-layer shadows, dark rim lighting, matte frosted glass, @container/subgrid, mobile-first layouts, verified 24x24 Lucide/Material SVGs, Single-DOM navigation, 5-state FSM, and RAW SHA-256 verification. Do NOT use for planning DESIGN.md alone or read-only audits."
+description: "Use when implementing or refactoring React 19, Next.js 15, Tailwind v4, or HTML/CSS UIs from DESIGN.md with 3-layer shadows, dark rim light, matte frosted glass, @container/subgrid, 44/48px targets, verified 24x24 SVGs, Single-DOM nav, 5-state FSM, and RAW SHA-256 verification. Do NOT use for planning DESIGN.md or read-only audits."
 license: MIT
 compatibility: "Antigravity 2.0 / Claude Code / Gemini CLI with Python 3.12+ (uv), React 19, Next.js 15+, Tailwind v4"
 metadata:
   author: shredded-shape
-  version: "1.4.0"
-  updated_at: "2026-11-17"
+  version: "1.5.0"
+  updated_at: "2026-11-18"
   category: frontend-implementation
   tags:
     - optical-shadows

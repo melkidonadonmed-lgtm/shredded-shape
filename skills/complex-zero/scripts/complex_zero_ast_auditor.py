@@ -27,6 +27,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import _ss_core
+import _ss_guards
 from visual_hierarchy_and_cdp_probe import (
     CHROME_DEVTOOLS_EVALUATE_SCRIPT,
     UnifiedVisualOrgReport,
@@ -55,9 +56,11 @@ FORWARD_REF_RE = re.compile(r"\bforwardRef\s*(?:<|\()")
 UNSAFE_HTML_RE = re.compile(r"dangerouslySetInnerHTML\s*=")
 
 
-def _evaluate_axis_1(combined: str, has_css: bool, org_rep: UnifiedVisualOrgReport, findings: list[dict[str, Any]]) -> int:
+def _evaluate_axis_1(
+    combined: str, has_css: bool, org_rep: UnifiedVisualOrgReport, findings: list[dict[str, Any]], div_clicks: int = 0
+) -> int:
     score = 25
-    if div_clicks := len(DIV_ONCLICK_NO_ROLE_RE.findall(combined)):
+    if div_clicks > 0:
         pen = min(10, div_clicks * 5)
         score -= pen
         findings.append({"axis": 1, "severity": "WARN", "rule": "SEMANTIC_BUTTON", "detail": f"{div_clicks} <div onClick> without role (-{pen} pts)"})
@@ -191,8 +194,9 @@ def audit_source_bundle(sources: dict[str, str], root_dir: Path | None = None, l
     combined = _ss_core.strip_comments("\n".join(sources.values()))
     has_css = any(k.endswith(".css") or "<style>" in v for k, v in sources.items())
     findings: list[dict[str, Any]] = []
+    div_clicks = sum(len(_ss_guards.find_unsemantic_div_clicks(Path(k), v)) for k, v in sources.items())
     org_rep = analyze_visual_hierarchy_and_organization(combined)
-    s1 = _evaluate_axis_1(combined, has_css, org_rep, findings)
+    s1 = _evaluate_axis_1(combined, has_css, org_rep, findings, div_clicks=div_clicks)
     s2 = _evaluate_axis_2(combined, has_css, org_rep, findings)
     s3 = _evaluate_axis_3(combined, sources, root_dir, org_rep, findings)
     s4, live_res = _evaluate_axis_4(combined, live_url, findings)
@@ -212,18 +216,20 @@ def audit_source_bundle(sources: dict[str, str], root_dir: Path | None = None, l
 
 def _collect_target_files(target: Path) -> dict[str, str]:
     if target.is_file():
-        files = _ss_core.collect_ui_files(target, limit=250) or [target]
+        files = _ss_core.collect_ui_files_scoped(target, limit=500)[0] or [target]
         root = target.parent
         return {
             (fp.relative_to(root).as_posix() if fp.is_relative_to(root) else fp.name): fp.read_text(encoding="utf-8", errors="replace")
             for fp in files
         }
     bundle: dict[str, str] = {}
-    for p in sorted(target.rglob("*")):
+    for fp in _ss_core.collect_ui_files_scoped(target, limit=500, include_tests=False)[0]:
+        if fp.suffix.lower() in FRONTEND_EXTENSIONS:
+            bundle[fp.relative_to(target).as_posix()] = fp.read_text(encoding="utf-8", errors="replace")
+    for p in sorted(target.rglob("mcp_apps_ui_*.go")):
         if not p.is_file() or any(part in _ss_core.IGNORED_DIRS for part in p.parts):
             continue
-        if p.suffix.lower() in FRONTEND_EXTENSIONS or (p.suffix.lower() == ".go" and p.name.startswith("mcp_apps_ui_")):
-            bundle[p.relative_to(target).as_posix()] = p.read_text(encoding="utf-8", errors="replace")
+        bundle[p.relative_to(target).as_posix()] = p.read_text(encoding="utf-8", errors="replace")
     return bundle
 
 

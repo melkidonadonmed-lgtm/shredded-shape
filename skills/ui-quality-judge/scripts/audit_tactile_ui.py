@@ -98,8 +98,9 @@ def strip_comments(source: str) -> str:
 
 
 def collect_frontend_files(target: Path) -> list[Path]:
-    """Collect frontend source and stylesheet files while skipping .venv and node_modules."""
-    return _ss_core.collect_ui_files(target, limit=250)
+    """Collect frontend source and stylesheet files while skipping test suites, .venv, and node_modules."""
+    files, _, _ = _ss_core.collect_ui_files_scoped(target, limit=500, include_tests=False)
+    return files
 
 
 def _check_orphan_cards(files: list[Path], findings: list[AuditFinding]) -> float:

@@ -26,6 +26,7 @@ for _cand in (*(p / "scripts" for p in _HERE.parents if (p / "pyproject.toml").i
         break
 
 import _ss_core
+import _ss_guards
 
 VAR_DECL_RE = re.compile(r"(--[a-zA-Z0-9_-]+)\s*:")
 HEX_COLOR_RE = re.compile(r"#[0-9a-fA-F]{3,8}\b|(?:rgba?|hsla?)\([^)]+\)")
@@ -36,7 +37,8 @@ IMPORT_ICON_RE = re.compile(
     r"from\s+['\"](lucide-react|@phosphor-icons/react|phosphor-react|@fluentui/react-icons"
     r"|@material-symbols/svg-[a-z0-9-]+|@heroicons[^'\"]*|@tabler/icons[^'\"]*|@radix-ui/react-icons|react-icons[^'\"]*)['\"]"
 )
-ROUTE_LINK_RE = re.compile(r"""(?:href|to)=['"](/[^'"#?]*|#[a-zA-Z0-9_-]+)['"]""")
+ROUTE_LINK_RE = re.compile(r"""(?:href|to|data-route)=['"](/[^'"#?]*|#[a-zA-Z0-9_-]+|[a-zA-Z0-9_-]+)['"]""")
+STATE_ROUTE_RE = re.compile(r"""\b(?:activeTab|currentView|currentRoute)\s*===\s*['"]([a-zA-Z0-9_/-]+)['"]""")
 OFF_GRID_TW_RE = re.compile(r"(?<![a-zA-Z0-9_-])(?:p|px|py|m|mx|my|gap|w|h)-\[(?:1|3|5|7|9|11|13|15|17|19|21|23)px\](?![a-zA-Z0-9_-])")
 IMPORTANT_RE = re.compile(r"!\s*important\b")
 CONTRACT_RE = re.compile(r"\b(?:interface|type)\s+([A-Z][A-Za-z0-9_]*Props|[A-Z][A-Za-z0-9_]*State)\b")
@@ -81,9 +83,16 @@ class FrontendInventoryReport(BaseModel):
     ai_slop_score: int = Field(ge=0, le=100)
 
 
+NavigationRefactorProposal.model_rebuild()
+FrontendInventoryReport.model_rebuild()
+
+
 def _detect_stack(root: Path, combined_text: str) -> list[str]:
     stack: list[str] = []
-    pkg_file = (root if root.is_dir() else root.parent) / "package.json"
+    base = root if root.is_dir() else root.parent
+    pkg_file = base / "package.json"
+    if not pkg_file.is_file() and base.name.lower() == "src":
+        pkg_file = base.parent / "package.json"
     if pkg_file.is_file():
         raw = pkg_file.read_text(encoding="utf-8", errors="ignore")
         pairs = (("next", "Next.js"), ("react", "React"), ("tailwindcss", "Tailwind CSS"), ("three", "Three.js"), ("framer-motion", "Motion"), ("motion", "Motion"), ("@xyflow/react", "@xyflow/react"))
@@ -94,6 +103,8 @@ def _detect_stack(root: Path, combined_text: str) -> list[str]:
         stack.append("Tailwind v4 @theme")
     if "@layer " in combined_text:
         stack.append("CSS @layer")
+    if base.is_dir() and any(base.rglob("mcp_apps_ui_*.go")):
+        stack.append("Go MCP Apps UI")
     return stack or ["Static HTML/CSS/JS"]
 
 
@@ -121,7 +132,8 @@ def _build_navigation_artifacts(nav_targets: list[str], oversized_files: list[st
     return "\n".join(lines), proposals
 
 
-def _scan_line_defects(rel: str, stripped: str, hex_locs: list[str], defects: list[str]) -> None:
+def _scan_line_defects(fp: Path, rel: str, raw_text: str, stripped: str, hex_locs: list[str], defects: list[str]) -> None:
+    masked = _ss_guards.strip_print_sheet_contexts(fp, stripped)
     checks = (
         (_ss_core.PURE_BLACK_RE, "[OPTICS-NO-BLACK] pure #000000 black detected"),
         (OFF_GRID_TW_RE, "off-grid spacing"),
@@ -137,19 +149,23 @@ def _scan_line_defects(rel: str, stripped: str, hex_locs: list[str], defects: li
         (_ss_core.ROW_REVERSE_RE, "[A11Y-TAB-DESYNC] row-reverse or CSS order breaks DOM == Tab order"),
         (_ss_core.COLOR_MIX_OKLCH_WARN_RE, "[OPTICS-COLOR-MIX-OKLAB] color-mix(in oklch) risks Chromium gamut-arc shift; use in oklab"),
     )
-    for ln, line in enumerate(stripped.splitlines(), 1):
+    for ln, line in enumerate(masked.splitlines(), 1):
         if hex_hit := HEX_COLOR_RE.search(line):
             hex_locs.append(f"{rel}:{ln} -> {hex_hit.group(0)}")
         for pattern, msg in checks:
             if pattern.search(line):
                 defects.append(f"{rel}:{ln} {msg}")
-    for m_grain in _ss_core.GRAIN_ABOVE_TEXT_RE.finditer(stripped):
-        ln = stripped[: m_grain.start()].count("\n") + 1
+    for m_grain in _ss_core.GRAIN_ABOVE_TEXT_RE.finditer(masked):
+        ln = masked[: m_grain.start()].count("\n") + 1
         defects.append(f"{rel}:{ln} [OPTICS-GRAIN-ABOVE-TEXT] feTurbulence overlay missing z-index: -1")
-    for msg in _ss_core.find_neon_violations(stripped):
+    for msg in _ss_core.find_neon_violations(masked):
         defects.append(f"{rel}:1 [OPTICS-NO-NEON] {msg}")
     for msg in _ss_core.inspect_inline_svgs(stripped):
         defects.append(f"{rel}:1 [AUDIT-VIS-BAD-SVG] {msg}")
+    for ln, snippet, _ in _ss_guards.find_pseudo_icon_hits(fp, raw_text):
+        defects.append(f"{rel}:{ln} [AUDIT-VIS-PSEUDO-ICON] non-SVG glyph '{snippet}'")
+    for ln, snippet, _ in _ss_guards.find_target_size_overrides(fp, raw_text):
+        defects.append(f"{rel}:{ln} [FITTS-TARGET-SIZE] interactive hit target < 40px ({snippet})")
     if "<feGaussianBlur" in stripped and "<feColorMatrix" in stripped and not any("ANTI-SLOP-BLOB" in d for d in defects):
         defects.append(f"{rel}:1 [ANTI-SLOP-BLOB] SVG gooey filter detected")
 
@@ -166,7 +182,7 @@ def _unverified_report(target_path: Path) -> FrontendInventoryReport:
 
 def scan_frontend(target_path: Path) -> FrontendInventoryReport:
     """Scan frontend sources to inventory tokens, colors, fonts, menus, contracts, and AI Slop."""
-    files = _ss_core.collect_ui_files(target_path)
+    files, total_eligible, truncated = _ss_core.collect_ui_files_scoped(target_path, limit=500)
     if not files:
         return _unverified_report(target_path)
     tokens, hex_locs, fonts, icon_libs, defects, contracts, nav_links = [], [], [], [], [], [], []
@@ -187,26 +203,36 @@ def scan_frontend(target_path: Path) -> FrontendInventoryReport:
         oklch_n += len(OKLCH_RE.findall(stripped))
         ld_n += len(LIGHT_DARK_RE.findall(stripped))
         svg_n += stripped.count("<svg")
-        emoji_n += len(_ss_core.EMOJI_RE.findall(stripped))
+        file_emojis = len(_ss_core.EMOJI_RE.findall(stripped))
+        if file_emojis:
+            emoji_n += file_emojis
+            defects.append(f"{rel}:1 [AUDIT-VIS-EMOJI] {file_emojis} Unicode UI emoji(s); replace with vector SVGs")
         fonts.extend(m.strip() for m in FONT_FAMILY_RE.findall(stripped))
         icon_libs.extend(IMPORT_ICON_RE.findall(stripped))
         contracts.extend(CONTRACT_RE.findall(stripped))
         no_use = re.sub(r"<use\b[^>]*>", "", stripped, flags=re.IGNORECASE)
         nav_links.extend(ROUTE_LINK_RE.findall(no_use))
-        _scan_line_defects(rel, stripped, hex_locs, defects)
+        nav_links.extend(STATE_ROUTE_RE.findall(no_use))
+        _scan_line_defects(fp, rel, text, stripped, hex_locs, defects)
 
+    if truncated:
+        defects.append(f"global:1 [SCOPE-TRUNCATED] audited {len(files)}/{total_eligible} UI files")
     unique_libs = sorted(set(icon_libs))
     if len(unique_libs) > 1:
         defects.append(f"global:1 mixed icon libraries ({', '.join(unique_libs)})")
     if _ss_core.has_confetti_badge_slop("\n".join(stripped_chunks)):
         defects.append("global:1 [ANTI-SLOP-CONFETTI] >=3 multicolored pill/badge variants; use neutral engraved-pill wells + 6px lum-bead")
-    hard_fail_tags = ("OPTICS-NO-BLACK", "OPTICS-NO-NEON", "OPTICS-NEON-GLOW", "ANTI-SLOP-BLOB", "ANTI-SLOP-CONFETTI", "ANTI-SLOP-WIREFRAME", "AUDIT-VIS-BAD-SVG", "PERF-REFLOW", "A11Y-TAB-DESYNC")
+    hard_fail_tags = (
+        "OPTICS-NO-BLACK", "OPTICS-NO-NEON", "OPTICS-NEON-GLOW", "ANTI-SLOP-BLOB",
+        "ANTI-SLOP-CONFETTI", "ANTI-SLOP-WIREFRAME", "AUDIT-VIS-BAD-SVG",
+        "AUDIT-VIS-EMOJI", "AUDIT-VIS-PSEUDO-ICON", "PERF-REFLOW", "A11Y-TAB-DESYNC",
+    )
     has_hard_blocker = any(any(tag in d for tag in hard_fail_tags) for d in defects)
     slop = min(100, min(30, emoji_n * 15) + min(55, len(defects) * 12) + (15 if oklch_n == 0 and hex_locs else 0))
     if has_hard_blocker:
         slop = max(slop, 45)
     verdict: Literal["[PASS]", "[WARN]", "[FAIL]"] = "[FAIL]" if (slop > 40 or has_hard_blocker) else ("[PASS]" if slop <= 15 else "[WARN]")
-    mermaid, proposals = _build_navigation_artifacts(nav_links, oversized_files, "\n".join(chunks))
+    mermaid, proposals = _build_navigation_artifacts(nav_links, oversized_files, "\n".join(stripped_chunks))
     return FrontendInventoryReport(
         verdict=verdict, target=str(target_path), files_scanned=len(files),
         detected_stack=_detect_stack(target_path, "\n".join(chunks)),

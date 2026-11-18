@@ -16,7 +16,10 @@ UI_EXTS = frozenset({".html", ".css", ".scss", ".tsx", ".jsx", ".ts", ".js", ".m
 IGNORED_DIRS = frozenset({
     "node_modules", ".git", "dist", "build", ".next", "coverage",
     "__pycache__", ".venv", "venv", ".pytest_cache", ".ruff_cache",
+    "playwright-report", ".storybook", "__mocks__",
 })
+TEST_ONLY_DIRS = frozenset({"__tests__", "tests", "__mocks__"})
+_TEST_FILE_RE = re.compile(r"(?:\.test|\.spec|\.stories|\.story)\.[^.]+$", re.IGNORECASE)
 
 CHROMA_WARN = 0.20
 CHROMA_CRITICAL = 0.22
@@ -152,38 +155,66 @@ def normalize_style_archetype(raw: str) -> str:
     return STYLE_ALIASES.get(key, key)
 
 
-def collect_ui_files(target: Path, limit: int = 250) -> list[Path]:
-    """Collect UI files from a file (with local HTML assets) or directory, skipping .venv/node_modules."""
+def collect_ui_files_scoped(
+    target: Path, limit: int = 500, include_tests: bool = False
+) -> tuple[list[Path], int, bool]:
+    """Collect UI files plus total eligible count and truncation status, excluding test suites by default."""
     if target.is_file():
         if target.suffix.lower() not in UI_EXTS:
-            return []
-        files = [target]
-        if target.suffix.lower() == ".html":
-            cleaned = strip_comments(target.read_text(encoding="utf-8", errors="ignore"))
-            root = target.parent.resolve()
-            rels = [
-                m.group(1) for attrs in _LINK_TAG_RE.findall(cleaned)
-                if _LINK_STYLE_REL_RE.search(attrs) and (m := _ATTR_REF_RE.search(attrs))
-            ] + [
-                m.group(1) for attrs in _SCRIPT_TAG_RE.findall(cleaned)
-                if (m := _ATTR_REF_RE.search(attrs))
-            ]
-            for rel in rels:
-                if rel.lower().startswith(_EXTERNAL_REF_PREFIXES):
-                    continue
-                local_rel = rel.split("#", 1)[0].split("?", 1)[0].strip()
-                if not local_rel:
-                    continue
-                cand = (root / local_rel).resolve()
-                if cand.is_file() and cand.is_relative_to(root) and cand not in files:
-                    files.append(cand)
-        return files[:limit]
+            return [], 0, False
+        files = _collect_html_linked_files(target) if target.suffix.lower() == ".html" else [target]
+        return files[:limit], len(files), len(files) > limit
     if not target.is_dir():
-        return []
-    return [
-        p for p in sorted(target.rglob("*"))
-        if p.is_file() and p.suffix.lower() in UI_EXTS and not any(part in IGNORED_DIRS for part in p.parts)
-    ][:limit]
+        return [], 0, False
+    eligible: list[Path] = []
+    for p in sorted(target.rglob("*")):
+        if not p.is_file() or p.suffix.lower() not in UI_EXTS:
+            continue
+        if any(part in IGNORED_DIRS for part in p.parts):
+            continue
+        if not include_tests and _is_test_or_story_file(p, target):
+            continue
+        eligible.append(p)
+    return eligible[:limit], len(eligible), len(eligible) > limit
+
+
+def _is_test_or_story_file(path: Path, root: Path) -> bool:
+    """Return True when file lives inside a test directory under root or uses test/story naming."""
+    try:
+        rel_parts = path.relative_to(root).parts[:-1]
+    except ValueError:
+        rel_parts = ()
+    return any(part in TEST_ONLY_DIRS for part in rel_parts) or bool(_TEST_FILE_RE.search(path.name))
+
+
+def _collect_html_linked_files(target: Path) -> list[Path]:
+    """Collect a single HTML entrypoint and its safe relative stylesheets/scripts."""
+    files = [target]
+    cleaned = strip_comments(target.read_text(encoding="utf-8", errors="ignore"))
+    root = target.parent.resolve()
+    rels = [
+        m.group(1) for attrs in _LINK_TAG_RE.findall(cleaned)
+        if _LINK_STYLE_REL_RE.search(attrs) and (m := _ATTR_REF_RE.search(attrs))
+    ] + [
+        m.group(1) for attrs in _SCRIPT_TAG_RE.findall(cleaned)
+        if (m := _ATTR_REF_RE.search(attrs))
+    ]
+    for rel in rels:
+        if rel.lower().startswith(_EXTERNAL_REF_PREFIXES):
+            continue
+        local_rel = rel.split("#", 1)[0].split("?", 1)[0].strip()
+        if not local_rel:
+            continue
+        cand = (root / local_rel).resolve()
+        if cand.is_file() and cand.is_relative_to(root) and cand not in files:
+            files.append(cand)
+    return files
+
+
+def collect_ui_files(target: Path, limit: int = 250, include_tests: bool = False) -> list[Path]:
+    """Collect UI files from a file (with local HTML assets) or directory, skipping test suites and build caches."""
+    files, _, _ = collect_ui_files_scoped(target, limit=limit, include_tests=include_tests)
+    return files
 
 
 def oklch_to_relative_luminance(l_val: float, c_val: float = 0.0, h_deg: float = 0.0) -> float:

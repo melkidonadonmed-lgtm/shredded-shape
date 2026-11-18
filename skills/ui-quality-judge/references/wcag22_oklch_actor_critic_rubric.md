@@ -21,9 +21,9 @@ Never approximate lightness via `L^1.8` (which over-estimates mid-gray `Y(0.50)`
 4. **Mix & File Cap Checks:** Emit `WARNING` (`OPTICS-COLOR-MIX-OKLAB`) on `color-mix(in oklch)` UI rules; keep all UI files `<= 600` lines.
 
 ## 3. Composite Scorecards (`--composite`) & Termination Bound
-| Gate Script | Passing Threshold | Hard Critical Rejections (`REJECTED`) |
+| Gate Script | Passing Threshold | Hard Critical Rejections / Fail-Closed `UNVERIFIED` |
 | :--- | :--- | :--- |
-| **`ui_judge_gatekeeper.py`** | `verdict == "PASSED"`, `findings == []` critical, `contrast_ratio_min >= 4.5` (`7.0` AAA) | `#000000`, `C > 0.22` (red `<= 0.24`), neon glows, blur blobs, confetti pills, dashed wireframes, bad SVGs, emojis, raw `innerHTML`, `row-reverse`/`order`, missing `:focus-visible`. |
-| **`audit_tactile_ui.py`** | 4-Pillar Readiness `>= 90.0` | Missing 5-Plane/`--surface-*` semantic tokens, flat shadows, missing FSM attributes, `tabular-nums`, or reduced-motion rules. |
-| **`ui_ux_frontend_auditor.py`** | 6-Dim UI/UX `>= 85.0` (`evaluate_target()` isolates markup per file) | Mixed icon packs, body `optimizeLegibility`, arbitrary non-4px margins/padding, `transition: all/width/height`, `< 12px` text, `divsoup > 0.45`, DOM depth `> 12`. |
+| **`ui_judge_gatekeeper.py`** | `verdict == "PASSED"`, `findings == []` critical, `contrast_ratio_min >= 4.5` (`7.0` AAA), `truncated == false`, `scope_narrowed == false` | `REJECTED`: `#000000`, `C > 0.22`, neon/blobs/confetti/wireframes, bad SVGs, emojis, pseudo-icons (`+`/`×`/`≡`), `< 40px` hit targets, `<div onClick>` (balanced JSX scan), print `box-shadow` leaks, raw `innerHTML`, missing `:focus-visible`. `UNVERIFIED`: file limit truncation or `styles/` narrowing with parent TSX/HTML siblings. |
+| **`audit_tactile_ui.py`** | 4-Pillar Readiness `>= 90.0` | Missing 5-Plane/`--surface-*` semantic tokens, flat shadows, missing FSM attributes, `tabular-nums`, or reduced-motion rules (excluding `__tests__`). |
+| **`ui_ux_frontend_auditor.py`** | 6-Dim UI/UX `>= 85.0` (`evaluate_target()` isolates markup, `.ts` print templates, and parent `index.html` viewport) | Mixed icon packs, body `optimizeLegibility`, arbitrary non-4px screen margins/padding, `transition: all/width/height`, `< 12px` screen text, `divsoup > 0.45`, DOM depth `> 12`. |
 - **Actor-Critic Bound:** Loop feedback back to `ui-worker` for at most `max_self_refine_rounds = 3` before escalating unresolved blockers.

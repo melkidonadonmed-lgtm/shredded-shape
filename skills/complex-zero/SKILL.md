@@ -5,8 +5,8 @@ license: MIT
 compatibility: "Antigravity 2.0, Chrome DevTools MCP, Python 3.12+ (uv), React 19, Next.js 15+"
 metadata:
   author: "shredded-shape"
-  version: "1.4.0"
-  updated_at: "2026-11-17"
+  version: "1.5.0"
+  updated_at: "2026-11-18"
   category: "domain-ui-pack"
   tags:
     - complex-zero

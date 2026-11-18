@@ -1,6 +1,6 @@
 [project]
 name = "shredded-shape"
-version = "1.4.0"
+version = "1.5.0"
 license = "MIT"
 description = "Shredded-Shape: Dedicated UI/UX Architecture, DevTools Forensic Analyst, Brand & Asset Planner, Clean Optical Worker, and WCAG 2.2 OKLab Actor-Critic Judge."
 readme = "README.md"

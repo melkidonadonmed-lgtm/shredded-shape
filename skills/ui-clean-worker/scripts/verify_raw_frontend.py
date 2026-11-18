@@ -28,6 +28,7 @@ for _cand in (*(p / "scripts" for p in _HERE.parents if (p / "pyproject.toml").i
         break
 
 import _ss_core
+import _ss_guards
 
 STUB_RE = re.compile(r"alert\(['\"]coming soon|onClick=\{\(\)\s*=>\s*\{\s*\}\}|TODO:\s*implement|setTimeout\(\s*\(\)\s*=>\s*(?:\{\s*\}|[^)]*\b(?:mock|fake|dummy)\b)", re.IGNORECASE)
 FORWARD_REF_RE = re.compile(r"\bforwardRef\s*(?:<|\()")
@@ -66,6 +67,7 @@ def _check_single_file(fp: Path, min_bytes: int) -> RAWFileCheck:
     if len(decoded.splitlines()) > 600:
         issues.append("[CAP-600L] UI module exceeds 600-line ceiling; decompose by domain")
     stripped = _ss_core.strip_comments(decoded)
+    masked = _ss_guards.strip_print_sheet_contexts(fp, stripped)
     checks = (
         (STUB_RE, "[STUB] Placeholder alert/empty handler detected"),
         (_ss_core.PURE_BLACK_RE, "[OPTICS] Pure #000000 black violates OLED Dark Mode elevation"),
@@ -82,15 +84,23 @@ def _check_single_file(fp: Path, min_bytes: int) -> RAWFileCheck:
         (_ss_core.SHADOWED_FONT_STACK_RE, "[TYP-DEAD-FONT-FALLBACK] Named font placed after generic family"),
     )
     for pattern, msg in checks:
-        if pattern.search(stripped):
+        if pattern.search(masked):
             issues.append(msg)
     is_fouc = "localStorage.getItem" in stripped and "setAttribute('data-theme'" in stripped.replace('"', "'")
     if UNSAFE_HTML_RE.search(stripped) and "DOMPurify" not in stripped and not is_fouc:
         issues.append("[AUDIT-SEC-01] dangerouslySetInnerHTML used without DOMPurify.sanitize()")
-    for msg in _ss_core.find_neon_violations(stripped):
+    for msg in _ss_core.find_neon_violations(masked):
         issues.append(f"[OPTICS-NO-NEON] {msg}")
     for msg in _ss_core.inspect_inline_svgs(stripped):
         issues.append(f"[AUDIT-VIS-BAD-SVG] {msg}")
+    for ln, snippet, _ in _ss_guards.find_target_size_overrides(fp, decoded):
+        issues.append(f"[FITTS-TARGET-SIZE] line {ln}: {snippet}")
+    for ln, snippet, _ in _ss_guards.find_pseudo_icon_hits(fp, decoded):
+        issues.append(f"[AUDIT-VIS-PSEUDO-ICON] line {ln}: {snippet}")
+    for ln, snippet, _ in _ss_guards.find_unsemantic_div_clicks(fp, decoded):
+        issues.append(f"[AUDIT-A11Y-CLICK-DIV] line {ln}: {snippet}")
+    for ln, snippet, _ in _ss_guards.find_print_shadow_leaks(fp, decoded):
+        issues.append(f"[CLINICAL-PRINT-SHADOW] line {ln}: {snippet}")
     return RAWFileCheck(file_path=str(fp), size_bytes=len(raw), sha256=digest, passed=not issues, issues=issues)
 
 
@@ -116,7 +126,7 @@ def verify_raw_frontend(target_path: Path, min_bytes: int = 100, run_tsc: bool =
         missing = RAWFileCheck(file_path=str(target_path), size_bytes=0, sha256="", passed=False, issues=["[RAW-VIOLATION] Target path does not exist"])
         return RAWVerificationResult(verdict="[RAW-VIOLATION]", files_checked=[missing], tsc_ran=False, tsc_passed=True, summary="Missing target file")
 
-    files = _ss_core.collect_ui_files(target_path, limit=200)
+    files, _, _ = _ss_core.collect_ui_files_scoped(target_path, limit=500)
     if not files:
         empty = RAWFileCheck(file_path=str(target_path), size_bytes=0, sha256="", passed=False, issues=["[RAW-VIOLATION] No eligible UI files found"])
         return RAWVerificationResult(verdict="[RAW-VIOLATION]", files_checked=[empty], tsc_ran=False, tsc_passed=True, summary="No eligible UI files")
