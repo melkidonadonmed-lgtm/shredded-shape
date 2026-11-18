@@ -44,12 +44,13 @@ judge = _load_mod("ss_judge", "skills/ui-quality-judge/scripts/ui_judge_gatekeep
 legacy_ux = _load_mod("ss_legacy_ux", "skills/ui-quality-judge/scripts/ui_ux_frontend_auditor.py")
 tactile_qa = _load_mod("ss_tactile_qa", "skills/ui-quality-judge/scripts/audit_tactile_ui.py")
 complex_zero = _load_mod("ss_complex_zero", "skills/complex-zero/scripts/complex_zero_ast_auditor.py")
+stitch_bridge = _load_mod("ss_stitch_bridge", "skills/stitch-canvas/scripts/stitch_asset_bridge.py")
 
 
 def test_validate_repository_and_adversarial_rejections(tmp_path: Path) -> None:
-    """Validate 6/6 skills + 4/4 agents pass, and adversarial contract violations are rejected."""
+    """Validate 7/7 skills + 4/4 agents pass, and adversarial contract violations are rejected."""
     passed, total, errors = validate_repository(ROOT_DIR, strict_mode=True)
-    assert total == 6 and passed == 6 and errors == [], f"Validation errors: {errors}"
+    assert total == 7 and passed == 7 and errors == [], f"Validation errors: {errors}"
 
     bad_skill = tmp_path / "bad-ui"
     bad_skill.mkdir()
@@ -61,6 +62,17 @@ def test_validate_repository_and_adversarial_rejections(tmp_path: Path) -> None:
     )
     s_errs = validate_skill_dir(bad_skill, strict_mode=True)
     assert any("orphan" in e.lower() for e in s_errs) and any(".." in e for e in s_errs)
+
+    bad_contract = tmp_path / "bad-contract"
+    bad_contract.mkdir()
+    (bad_contract / "SKILL.md").write_text(
+        "---\nname: bad-contract\ndescription: \"Use when testing contracts. Do NOT use in prod.\"\n"
+        "compatibility: \"Any\"\nmetadata:\n  version: \"1.0.0\"\n  category: ui\n  tags:\n    - one\n---\n"
+        "## Overview\n" + ("word " * 850) + "\n## Inputs\nA\n## Procedure\nB\n## Gotchas\nC\n## Output\nD\n## User Communication\nE\n",
+        encoding="utf-8",
+    )
+    c_errs = " | ".join(validate_skill_dir(bad_contract, strict_mode=True))
+    assert "allowed-tools" in c_errs and "flat scalar" in c_errs and "1000-token" in c_errs
 
     fake_repo = tmp_path / "repo"
     (fake_repo / "agents").mkdir(parents=True)
@@ -109,6 +121,7 @@ def test_self_tests_and_dag_compiler_adversarial() -> None:
     assert legacy_ux._run_self_test() == 0
     assert tactile_qa._run_self_test() == 0
     assert complex_zero.run_self_test() == 0
+    assert stitch_bridge._run_self_test() == 0
 
     assert len(planner.compile_default_dag(ROOT_DIR, mode="greenfield").nodes) == 3
     assert len(planner.compile_default_dag(ROOT_DIR, mode="refactor").nodes) == 4
@@ -160,25 +173,27 @@ def test_worker_raw_and_judge_adversarial_matrix(tmp_path: Path) -> None:
 
 
 def test_shredded_shape_level1_trigger_precision_f1() -> None:
-    """Verify Top-1 = 100% and F1 = 1.0 across all 6 shredded-shape skills using positive/negative evals."""
+    """Verify Top-1 = 100% and F1 = 1.0 across all 7 shredded-shape skills using positive/negative evals."""
     skill_meta: dict[str, dict[str, str]] = {}
     for skill_md in sorted((ROOT_DIR / "skills").glob("*/SKILL.md")):
         parts = skill_md.read_text(encoding="utf-8").split("---", 2)
         parsed = yaml.safe_load(parts[1])
-        tags = " ".join(parsed.get("metadata", {}).get("tags", []))
+        raw_tags = parsed.get("metadata", {}).get("tags", "")
+        tags = raw_tags if isinstance(raw_tags, str) else " ".join(raw_tags)
         skill_meta[parsed["name"]] = {
             "desc": str(parsed["description"]).lower(),
             "tags": tags.lower(),
         }
-    assert len(skill_meta) == 6
+    assert len(skill_meta) == 7
 
     queries = [
         ("ui-frontend-analyst", "Chrome DevTools inventory of tokens, colors, fonts, AI Slop, and Before/After navigation diagram"),
-        ("ui-brand-ux-planner", "Brand identity, OKLCH 60-30-10, Soft Hi-Tech Retro style tokens, Google Stitch, Figma MCP, Google Fonts, 3D Unity, DESIGN.md"),
+        ("ui-brand-ux-planner", "Brand identity, OKLCH 60-30-10, Soft Hi-Tech Retro style tokens, Figma MCP, Google Fonts, 3D Unity, DESIGN.md"),
         ("ui-clean-worker", "Implement React 19 Next.js 15 Tailwind v4 UI with 3-layer shadows, dark rim lighting, matte glass, and RAW SHA-256"),
         ("ui-quality-judge", "Read-only Actor-Critic WCAG 2.2 OKLCH contrast judge FNR < 0.001, 48x48px, :focus-visible, DOM==Tab, PASSED/REJECTED"),
         ("clinical-minimalist-ui", "Clinical EHR PEP dashboard, medical creatinine clearance calculator, and A4 .sus-grid vector print sheet"),
         ("complex-zero", "ReAct CDP DevTools audit for @xyflow/react infinite canvas, 150ms WebSocket chokidar, ghost nodes, Next.js 15 async params"),
+        ("stitch-canvas", "Google Stitch Canvas bridge: stitch CLI capture-screen, generate-screen, stitch-variants, and download HTML/PNG (=w{width}) via stitch-mcp"),
     ]
     hits = 0
     for expected, q in queries:
@@ -194,12 +209,12 @@ def test_shredded_shape_level1_trigger_precision_f1() -> None:
 
 
 def test_sync_shredded_shape_isolated(tmp_path: Path) -> None:
-    """Verify plugin bundle deployment copies 6 skills, rules, plans, assets, and 4 agents cleanly."""
+    """Verify plugin bundle deployment copies 7 skills, rules, plans, assets, and 4 agents cleanly."""
     summary = sync_shredded_shape(repo_root=ROOT_DIR, gemini_root=tmp_path)
     assert summary["status"] == "SYNCHRONIZED"
     plugin_root = tmp_path / "config" / "plugins" / "shredded-shape"
     assert (plugin_root / "plugin.json").is_file()
-    assert len(list((plugin_root / "skills").glob("*/SKILL.md"))) == 6
+    assert len(list((plugin_root / "skills").glob("*/SKILL.md"))) == 7
     assert (plugin_root / "assets" / "ui_skills_architecture_atlas.html").is_file()
     assert (plugin_root / "assets" / "atlas_styles.css").is_file()
     assert (plugin_root / "assets" / "atlas_app.js").is_file()
@@ -266,6 +281,9 @@ def test_v120_oklab_svg_blob_neon_and_comment_hygiene(tmp_path: Path) -> None:
     )
     assert judge.evaluate_ui(clean_css).verdict == "PASSED"
 
+
+def test_v120_wireframe_and_confetti_gates(tmp_path: Path) -> None:
+    """Verify dashed wireframe and multicolored confetti badge rejections."""
     assert _ss_core.DASHED_BOX_SLOP_RE.search(".flow { border: 1px dashed #666; }")
     assert _ss_core.DASHED_BOX_SLOP_RE.search(":focus-visible { outline: 2px dashed currentColor; }") is None
     assert _ss_core.has_confetti_badge_slop(".mono-tag.warn{} .mono-tag.danger{} .mono-tag.ok{}")
@@ -325,6 +343,9 @@ def test_v140_theme_polarity_bundle_dom_cli_and_raw_gates(tmp_path: Path) -> Non
     assert _ss_core.REFLOW_TRANSITION_RE.search("transition: border-top-color 0.2s ease;") is None
     assert _ss_core.REFLOW_TRANSITION_RE.search("transition: all 0.2s ease;") is not None
 
+
+def test_v140_clinical_bundle_and_worker_raw_gates(tmp_path: Path) -> None:
+    """Verify .sus-grid AAA escalation, multi-file DOM evaluation, worker RAW gates, and fail-closed agent contracts."""
     sus_css = tmp_path / "sus.css"
     sus_css.write_text(":root { --ink-primary: light-dark(oklch(0.18 0.02 250), oklch(0.95 0.01 250)); --bg-card: light-dark(oklch(0.99 0.002 250), oklch(0.22 0.02 250)); } .sus-grid { display: grid; }\n", encoding="utf-8")
     assert judge.evaluate_ui(sus_css).wcag_level == "AAA"

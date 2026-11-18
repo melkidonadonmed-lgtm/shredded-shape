@@ -133,6 +133,10 @@ def _check_single_script_ast(skill_name: str, item: Path, src: str, errors: list
     for node in ast.walk(tree):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "input":
             errors.append(f"[FAIL] {skill_name}/{item.name}: interactive input() forbidden")
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and getattr(node, "end_lineno", None):
+            fn_len = int(node.end_lineno) - int(node.lineno) + 1
+            if fn_len > 60:
+                errors.append(f"[FAIL] {skill_name}/{item.name}:{node.name} exceeds 60 lines ({fn_len})")
 
 
 def _check_scripts_ast(skill_dir: Path, errors: list[str]) -> None:
@@ -150,14 +154,19 @@ def _check_scripts_ast(skill_dir: Path, errors: list[str]) -> None:
 
 
 def _check_strict_skill_metadata(skill_name: str, meta: dict[str, Any], errors: list[str]) -> None:
-    orphans = [k for k in ("version", "updated_at", "allowed-tools") if k in meta]
+    orphans = [k for k in ("version", "updated_at") if k in meta]
     md_block = meta.get("metadata")
     if orphans or not isinstance(md_block, dict):
         errors.append(f"[FAIL] {skill_name}: invalid metadata block or orphan top keys {orphans}")
         return
+    if not isinstance(meta.get("allowed-tools"), str) or not str(meta.get("allowed-tools", "")).strip():
+        errors.append(f"[FAIL] {skill_name}: missing top-level scalar allowed-tools")
+    bad_md = [k for k, v in md_block.items() if isinstance(v, (list, dict))]
+    if bad_md:
+        errors.append(f"[FAIL] {skill_name}: metadata keys {bad_md} must be flat scalar strings")
     if not SEMVER_RE.match(str(md_block.get("version", "")).strip()):
         errors.append(f"[FAIL] {skill_name}: invalid SemVer metadata.version")
-    elif not (str(meta.get("compatibility", "")).strip() and str(md_block.get("category", "")).strip() and md_block.get("tags")):
+    elif not (str(meta.get("compatibility", "")).strip() and str(md_block.get("category", "")).strip() and str(md_block.get("tags", "")).strip()):
         errors.append(f"[FAIL] {skill_name}: missing compatibility, metadata.category, or metadata.tags")
 
 
@@ -178,6 +187,8 @@ def validate_skill_dir(skill_dir: Path, strict_mode: bool = True) -> list[str]:
         errors.append(f"[FAIL] {skill_dir.name}: description must be 30..{MAX_DESC_RECOMMENDED} chars with positive before negative triggers")
     if strict_mode:
         _check_strict_skill_metadata(skill_dir.name, meta, errors)
+        if len(body) // 4 > 1000:
+            errors.append(f"[FAIL] {skill_dir.name}: SKILL.md body exceeds 1000-token budget ({len(body) // 4})")
     _check_skill_markdown(skill_dir, raw, body, errors)
     _check_skill_assets(skill_dir, strict_mode, errors)
     _check_scripts_ast(skill_dir, errors)

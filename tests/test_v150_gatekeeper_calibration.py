@@ -6,8 +6,6 @@ import importlib.util
 import sys
 from pathlib import Path
 
-import pytest
-
 from scripts import _ss_core, _ss_guards, sync_shredded_shape, validate_shredded_shape
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -163,5 +161,6 @@ def test_sync_vendors_guards_and_strict_validator_passes(tmp_path: Path) -> None
     res = sync_shredded_shape.sync_shredded_shape(repo_root=ROOT, gemini_root=tmp_path, sync_local_workspace=False)
     assert "triad_mirrored" not in res
     assert (tmp_path / "config" / "plugins" / "shredded-shape" / "skills" / "ui-quality-judge" / "scripts" / "_ss_guards.py").is_file()
+    assert (tmp_path / "config" / "plugins" / "shredded-shape" / "skills" / "stitch-canvas" / "scripts" / "_ss_guards.py").is_file()
     passed, total, errors = validate_shredded_shape.validate_repository(ROOT, strict_mode=True)
-    assert errors == [] and passed == total and total == 6
+    assert errors == [] and passed == total and total == 7

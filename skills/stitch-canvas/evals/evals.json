@@ -1,0 +1,40 @@
+{
+  "skill_name": "stitch-canvas",
+  "evals": [
+    {
+      "id": "stitch-canvas-pos-01",
+      "prompt": "Capture our running localhost dashboard with stitch CLI, upload the screen and DESIGN.md to Google Stitch Canvas, and download the generated variants HTML and PNG (=w{width}) for OKLCH translation.",
+      "should_trigger": true,
+      "assertions": [
+        "Runs stitch status --flow=design --json and stitch capture before uploading",
+        "Appends =w{width} to screenshot downloadUrl via stitch_asset_bridge.py",
+        "Hands off downloaded assets for OKLCH 60-30-10 and Tailwind v4 @theme conversion"
+      ]
+    },
+    {
+      "id": "stitch-canvas-pos-02",
+      "prompt": "Use Stitch MCP list_projects and generate_screen_from_text to create a new mobile screen, then call apply_design_system filtering selectedScreenInstances without x/y/width/height.",
+      "should_trigger": true,
+      "assertions": [
+        "Filters out DESIGN_SYSTEM_INSTANCE and strips coordinate keys via stitch_asset_bridge.py",
+        "Keeps generation prompts focused on layout when a Design System already exists"
+      ]
+    },
+    {
+      "id": "stitch-canvas-neg-01",
+      "prompt": "Audit our local React src/ directory with Chrome DevTools CSS Overview, INP, scrollWidth clipping, and 12-vector AI Slop score.",
+      "should_trigger": false,
+      "assertions": [
+        "Routes to ui-frontend-analyst instead of stitch-canvas"
+      ]
+    },
+    {
+      "id": "stitch-canvas-neg-02",
+      "prompt": "Evaluate our local CSS and TSX components with the read-only WCAG 2.2 OKLab contrast judge and emit PASSED or REJECTED.",
+      "should_trigger": false,
+      "assertions": [
+        "Routes to ui-quality-judge instead of stitch-canvas"
+      ]
+    }
+  ]
+}

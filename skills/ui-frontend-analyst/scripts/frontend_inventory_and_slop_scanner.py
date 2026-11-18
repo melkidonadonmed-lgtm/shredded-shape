@@ -180,6 +180,24 @@ def _unverified_report(target_path: Path) -> FrontendInventoryReport:
     )
 
 
+_HARD_FAIL_TAGS = (
+    "OPTICS-NO-BLACK", "OPTICS-NO-NEON", "OPTICS-NEON-GLOW", "ANTI-SLOP-BLOB",
+    "ANTI-SLOP-CONFETTI", "ANTI-SLOP-WIREFRAME", "AUDIT-VIS-BAD-SVG",
+    "AUDIT-VIS-EMOJI", "AUDIT-VIS-PSEUDO-ICON", "PERF-REFLOW", "A11Y-TAB-DESYNC",
+)
+
+
+def _score_slop_verdict(
+    emoji_n: int, defects: list[str], oklch_n: int, hex_locs: list[str]
+) -> tuple[int, Literal["[PASS]", "[WARN]", "[FAIL]"]]:
+    has_hard_blocker = any(any(tag in d for tag in _HARD_FAIL_TAGS) for d in defects)
+    slop = min(100, min(30, emoji_n * 15) + min(55, len(defects) * 12) + (15 if oklch_n == 0 and hex_locs else 0))
+    if has_hard_blocker:
+        slop = max(slop, 45)
+    verdict: Literal["[PASS]", "[WARN]", "[FAIL]"] = "[FAIL]" if (slop > 40 or has_hard_blocker) else ("[PASS]" if slop <= 15 else "[WARN]")
+    return slop, verdict
+
+
 def scan_frontend(target_path: Path) -> FrontendInventoryReport:
     """Scan frontend sources to inventory tokens, colors, fonts, menus, contracts, and AI Slop."""
     files, total_eligible, truncated = _ss_core.collect_ui_files_scoped(target_path, limit=500)
@@ -211,8 +229,7 @@ def scan_frontend(target_path: Path) -> FrontendInventoryReport:
         icon_libs.extend(IMPORT_ICON_RE.findall(stripped))
         contracts.extend(CONTRACT_RE.findall(stripped))
         no_use = re.sub(r"<use\b[^>]*>", "", stripped, flags=re.IGNORECASE)
-        nav_links.extend(ROUTE_LINK_RE.findall(no_use))
-        nav_links.extend(STATE_ROUTE_RE.findall(no_use))
+        nav_links.extend(ROUTE_LINK_RE.findall(no_use) + STATE_ROUTE_RE.findall(no_use))
         _scan_line_defects(fp, rel, text, stripped, hex_locs, defects)
 
     if truncated:
@@ -222,16 +239,7 @@ def scan_frontend(target_path: Path) -> FrontendInventoryReport:
         defects.append(f"global:1 mixed icon libraries ({', '.join(unique_libs)})")
     if _ss_core.has_confetti_badge_slop("\n".join(stripped_chunks)):
         defects.append("global:1 [ANTI-SLOP-CONFETTI] >=3 multicolored pill/badge variants; use neutral engraved-pill wells + 6px lum-bead")
-    hard_fail_tags = (
-        "OPTICS-NO-BLACK", "OPTICS-NO-NEON", "OPTICS-NEON-GLOW", "ANTI-SLOP-BLOB",
-        "ANTI-SLOP-CONFETTI", "ANTI-SLOP-WIREFRAME", "AUDIT-VIS-BAD-SVG",
-        "AUDIT-VIS-EMOJI", "AUDIT-VIS-PSEUDO-ICON", "PERF-REFLOW", "A11Y-TAB-DESYNC",
-    )
-    has_hard_blocker = any(any(tag in d for tag in hard_fail_tags) for d in defects)
-    slop = min(100, min(30, emoji_n * 15) + min(55, len(defects) * 12) + (15 if oklch_n == 0 and hex_locs else 0))
-    if has_hard_blocker:
-        slop = max(slop, 45)
-    verdict: Literal["[PASS]", "[WARN]", "[FAIL]"] = "[FAIL]" if (slop > 40 or has_hard_blocker) else ("[PASS]" if slop <= 15 else "[WARN]")
+    slop, verdict = _score_slop_verdict(emoji_n, defects, oklch_n, hex_locs)
     mermaid, proposals = _build_navigation_artifacts(nav_links, oversized_files, "\n".join(stripped_chunks))
     return FrontendInventoryReport(
         verdict=verdict, target=str(target_path), files_scanned=len(files),

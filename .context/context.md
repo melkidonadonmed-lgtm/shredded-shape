@@ -1,11 +1,11 @@
 # CONTEXT.MD — Authoritative Project State (`shredded-shape`)
-> **Last Updated:** 2026-11-18 | **Status:** `ACTIVE` | **Version:** `1.5.0`
+> **Last Updated:** 2026-11-18 | **Status:** `ACTIVE` | **Version:** `1.5.1`
 
 ## 1. Overview & Current Architecture
 - **Purpose:** Dedicated UI/UX Architecture, Forensic DevTools Analyst, Brand & Style Planner, Clean Optical Worker, and WCAG 2.2 OKLCH Actor-Critic Judge suite packaged as the `shredded-shape` Antigravity plugin.
 - **Stack & Runtime:** Python 3.12+ (`uv`, `pydantic`, `pyyaml`, `pytest`), Chrome DevTools Probe JS, Modern CSS (`OKLCH`, `light-dark()`, `@container`, `subgrid`, Tailwind v4 `@theme`, `color-mix(in oklab)`, `@starting-style`), Windows 11 (`pwsh`).
 - **Active Modules:**
-  - `"skills/"`: 6 canonical UI/UX skills (`ui-frontend-analyst`, `ui-brand-ux-planner`, `ui-clean-worker`, `ui-quality-judge`, `clinical-minimalist-ui`, `complex-zero`) with 2-tier L3 `references/*.md` (`<= 150` lines) and 12-vector Anti-Slop contracts.
+  - `"skills/"`: 7 canonical UI/UX skills (`ui-frontend-analyst`, `ui-brand-ux-planner`, `ui-clean-worker`, `ui-quality-judge`, `clinical-minimalist-ui`, `complex-zero`, plus decoupled `stitch-canvas`) with 2-tier L3 `references/*.md` (`<= 150` lines) and 12-vector Anti-Slop contracts.
   - `"agents/"`: 4 declarative Actor-Critic subagents (`ui-analyst.md`, `ui-planner.md`, `ui-worker.md`, `ui-judge.md`) with `send_message`, `max_steps` (`10/8/16/8`), and `<= 5` rules/node.
   - `"rules/"`: `frontend-9-axes-guidelines.md` (9-Axis SSOT + 5-Plane `OKLCH` + Mobile-First postures + `color-mix(in oklab)`).
   - `"plans/"`: `ui_actor_critic_dag.json` (4-stage bounded DAG with `<= 5` rules/node, `ui-worker max_steps: 16`, and closed-loop Self-Refine edge).
@@ -19,6 +19,13 @@
 - **`[SSOT-UI-04]` Technical English Internals + `pt-BR` Bridge (`[LOCK-04]`):** Author all code, skills, references, rules, and subagents in Technical English; deliver all user communication and Atlas UI copy in **Portuguese (`pt-BR`)**.
 
 ## 3. Recent Changes (Changelog)
+- `[2026-11-18]` **`v1.5.1` (`TASK-06`) — Decoupled `stitch-canvas` 7th Skill & Staging Cleanup:**
+  - Created decoupled `skills/stitch-canvas/` (`SKILL.md`, 2 L3 references `stitch_mcp_18_tools_and_cli.md` & `stitch_to_oklch_translation.md`, `rules/audit_criteria.md`, `evals/evals.json`, and cross-platform `scripts/stitch_asset_bridge.py` with SSRF allowlist, `=w{width}` normalization, `DESIGN_SYSTEM_INSTANCE` filtering, and SHA-256 verification).
+  - Absorbed fake telemetry (`"99.98% UPTIME"`) and `"LABEL // YEAR"` bans into `ui-frontend-analyst/references/taste_anti_slop_and_style_debt.md`, removed the 17 redundant raw staging packages from `.agents/skills/` (`skills-lock.json`), updated `tests/test_shredded_shape_suite.py` (`7/7` skills, $F_1 = 1.0$), and deployed to `~/.gemini/config/plugins/shredded-shape/`.
+- `[2026-11-18]` **`v1.5.1` — Wave 3 14-Axis Ecosystem Audit, Scalar Metadata & `_ss_core.py` Modularity Upgrade:**
+  - Converted all 6 `skills/*/SKILL.md` frontmatter blocks to ADK Go v2-compatible top-level `allowed-tools` and 100% flat scalar `metadata:` (`map[string]string` with CSV `tags` and `version: "1.5.1"`), replaced retired `design-md` tag with `design-blueprint` in `ui-brand-ux-planner`, linked [`rules/audit_criteria.md`](rules/audit_criteria.md) in `clinical-minimalist-ui`, trimmed all L2 bodies below the `1,000`-token strict cap, and embedded `estante` Zero-Trust guardrail & Read-After-Write checklist anchors.
+  - Hardened `scripts/validate_shredded_shape.py` to permit top-level scalar `allowed-tools` while strictly rejecting YAML list/dict `metadata` values, missing `allowed-tools`, `> 1,000`-token L2 bodies, and `> 60`-line Python script functions; extended `tests/test_shredded_shape_suite.py` with adversarial contract assertions and eliminated all `> 60`-line test functions and unused imports.
+  - Refactored `scripts/_ss_core.py` (and vendored into all 5 skill `scripts/` dirs via `sync_shredded_shape.py`) and `skills/ui-frontend-analyst/scripts/frontend_inventory_and_slop_scanner.py` (`_score_slop_verdict`), raising every `.py` module across the repository to `100% APPROVED` (`CodeAcceptabilityAuditor`, `0` functions `> 60`L, `0` files `> 600`L) and syncing `plugin.json`/`pyproject.toml`/`AGENTS.md`/`.context/spec.md` at `v1.5.1`.
 - `[2026-11-18]` **`v1.5.0` — `TASK-05` Refined Finishing & Gatekeeper Calibration (`[GAP-01..06]`):**
   - Added `scripts/_ss_guards.py` (vendored to all `skills/*/scripts/_ss_guards.py`) and `collect_ui_files_scoped()` in `scripts/_ss_core.py` excluding `__tests__/`, `tests/`, `__mocks__/`, `*.test.*`, `*.spec.*`, and `.stories.*` while surfacing exact `files_total_eligible` and `truncated` metadata.
   - Calibrated print/test isolation (`strip_print_sheet_contexts()` for `.ts` A4 templates and `@media print`/`.sus-grid`, `find_print_shadow_leaks()`, sibling `index.html` viewport lookup, isolated single-`.tsx` scoring in `ui_ux_frontend_auditor.py`) alongside balanced JSX `<div onClick>` parsing (`find_unsemantic_div_clicks()` exempting `stopPropagation()` and dismiss backdrops while flagging real `CidSearchBar.tsx` hits at exact lines), `find_pseudo_icon_hits()`, and `find_target_size_overrides()`.
@@ -52,3 +59,4 @@
 - [x] `TASK-01..03`: Bootstrap repository, 4-stage Actor-Critic suite, and `v1.4.0` EGM remediation + Unified 7-Chapter Atlas.
 - [ ] `TASK-04`: Connect `shredded-shape` remote GitHub repository when requested by user.
 - [x] `TASK-05`: Implemented `v1.5.0` Refined Finishing & Gatekeeper Calibration Upgrade (`[GAP-01..06]`) per [`.context/refined-finishing-gap-analysis-2026-11-17.md`](refined-finishing-gap-analysis-2026-11-17.md).
+- [x] `TASK-06`: Evaluated 17 staged Stitch skills, created decoupled `skills/stitch-canvas/` (`7/7` skills, $F_1 = 1.0$), removed redundant `.agents/skills/` staging (`skills-lock.json`), and synced plugin.

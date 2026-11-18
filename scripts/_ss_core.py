@@ -155,6 +155,14 @@ def normalize_style_archetype(raw: str) -> str:
     return STYLE_ALIASES.get(key, key)
 
 
+def _is_eligible_ui_file(path: Path, target: Path, include_tests: bool) -> bool:
+    if not path.is_file() or path.suffix.lower() not in UI_EXTS:
+        return False
+    if IGNORED_DIRS.intersection(path.parts):
+        return False
+    return include_tests or not _is_test_or_story_file(path, target)
+
+
 def collect_ui_files_scoped(
     target: Path, limit: int = 500, include_tests: bool = False
 ) -> tuple[list[Path], int, bool]:
@@ -166,15 +174,7 @@ def collect_ui_files_scoped(
         return files[:limit], len(files), len(files) > limit
     if not target.is_dir():
         return [], 0, False
-    eligible: list[Path] = []
-    for p in sorted(target.rglob("*")):
-        if not p.is_file() or p.suffix.lower() not in UI_EXTS:
-            continue
-        if any(part in IGNORED_DIRS for part in p.parts):
-            continue
-        if not include_tests and _is_test_or_story_file(p, target):
-            continue
-        eligible.append(p)
+    eligible = [p for p in sorted(target.rglob("*")) if _is_eligible_ui_file(p, target, include_tests)]
     return eligible[:limit], len(eligible), len(eligible) > limit
 
 
@@ -278,8 +278,7 @@ def srgb_to_oklch(r: int, g: int, b: int) -> tuple[float, float, float]:
     return l_ok, chroma, hue
 
 
-def find_neon_violations(stripped_text: str) -> list[str]:
-    """Detect high-chroma neon oklch(), fluorescent #hex, and saturated hsl() colors."""
+def _find_oklch_neons(stripped_text: str) -> list[str]:
     hits: list[str] = []
     for l_s, l_pct, c_s, c_pct, h_s in _OKLCH_VAL_RE.findall(stripped_text):
         l_val = float(l_s) / 100.0 if l_pct else float(l_s)
@@ -288,45 +287,84 @@ def find_neon_violations(stripped_text: str) -> list[str]:
         cap = CHROMA_DANGER_MAX if 15.0 <= h_val <= 40.0 else CHROMA_CRITICAL
         if c_val > cap and l_val > 0.35:
             hits.append(f"High-chroma neon oklch(L={l_val:.2f}, C={c_val:.2f}, H={h_val:.0f}) > {cap:.2f}")
+    return hits
+
+
+def _is_fluo_hex(r: int, g: int, b: int, s_hsl: float, l_hsl: float) -> bool:
+    return s_hsl >= 0.99 and 0.45 <= l_hsl <= 0.65 and min(r, g, b) <= 25 and max(r, g, b) >= 245
+
+
+def _find_hex_neons(stripped_text: str) -> list[str]:
+    hits: list[str] = []
     for hx in _HEX_RE.findall(stripped_text):
         r, g, b = hex_to_rgb(hx)
         _, l_hsl, s_hsl = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
         l_ok, c_ok, h_ok = srgb_to_oklch(r, g, b)
         cap = CHROMA_DANGER_MAX if 15.0 <= h_ok <= 40.0 else CHROMA_CRITICAL
-        is_fluo_hex = s_hsl >= 0.99 and 0.45 <= l_hsl <= 0.65 and min(r, g, b) <= 25 and max(r, g, b) >= 245
-        if is_fluo_hex or (l_ok > 0.55 and c_ok > cap):
+        if _is_fluo_hex(r, g, b, s_hsl, l_hsl) or (l_ok > 0.55 and c_ok > cap):
             hits.append(f"High-chroma neon hex {hx} (OKLCH C={c_ok:.2f}, HSL S={s_hsl:.2f})")
+    return hits
+
+
+def find_neon_violations(stripped_text: str) -> list[str]:
+    """Detect high-chroma neon oklch(), fluorescent #hex, and saturated hsl() colors."""
+    hits = _find_oklch_neons(stripped_text) + _find_hex_neons(stripped_text)
     if _HSL_NEON_RE.search(stripped_text):
         hits.append("Saturated fluorescent hsl() color detected")
     return hits
+
+
+def _is_exempt_svg_block(attrs: str, body: str) -> bool:
+    low_body = body.lower()
+    if "<symbol" in low_body or "<defs" in low_body:
+        return True
+    if re.search(r"\bhidden\b|\bwidth\s*=\s*['\"]0['\"]|role\s*=\s*['\"]img['\"]|data-chart", attrs, re.IGNORECASE):
+        return True
+    vb_m = re.search(r"viewBox\s*=\s*['\"][^'\"]*\b(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)['\"]", attrs, re.IGNORECASE)
+    return bool(vb_m and max(float(vb_m.group(1)), float(vb_m.group(2))) >= 48 and float(vb_m.group(1)) != 960)
+
+
+def _has_solid_fill(attrs: str) -> bool:
+    low = attrs.lower()
+    return 'fill="none"' not in low and "fill='none'" not in low
+
+
+def _is_bloop_circle_cloud(attrs: str, body: str) -> bool:
+    circles = re.findall(r"<circle\b([^>]*)/?>", body, re.IGNORECASE)
+    if len(circles) < 3 or re.search(r"<(?:path|line|polyline)\b", body, re.IGNORECASE):
+        return False
+    if _has_solid_fill(attrs):
+        return True
+    for c in circles:
+        if "fill=" in c.lower() and _has_solid_fill(c):
+            return True
+        r_m = re.search(r"\br\s*=\s*['\"]([0-9.]+)", c)
+        if r_m and float(r_m.group(1)) >= 4.0:
+            return True
+    return False
+
+
+def _inspect_single_svg(attrs: str, body: str) -> list[str]:
+    if _is_exempt_svg_block(attrs, body):
+        return []
+    issues: list[str] = []
+    has_use = bool(re.search(r"<use\b", body, re.IGNORECASE))
+    if not has_use and not _SVG_CHILD_RE.search(body) and "{" not in body:
+        return ["Empty inline <svg> element with zero vector geometry"]
+    if not has_use and not re.search(r"\bviewBox\s*=", attrs, re.IGNORECASE):
+        issues.append("Inline UI icon <svg> missing viewBox attribute")
+    if re.search(r"<path\b[^>]*\bd\s*=\s*['\"]\s*(?:NaN|undefined)?\s*['\"]", body, re.IGNORECASE):
+        issues.append("Corrupted or empty <path d=...> inside inline <svg>")
+    if _is_bloop_circle_cloud(attrs, body):
+        issues.append("Amateur multi-circle bloop-cloud <svg> detected; use verified Lucide/Material SVG paths")
+    return issues
 
 
 def inspect_inline_svgs(stripped_text: str) -> list[str]:
     """Flag empty inline <svg>, missing viewBox on UI icons, and bloop-cloud circle clusters."""
     issues: list[str] = []
     for attrs, body in _SVG_BLOCK_RE.findall(stripped_text):
-        if "<symbol" in body.lower() or "<defs" in body.lower() or re.search(r"\bhidden\b|\bwidth\s*=\s*['\"]0['\"]", attrs, re.IGNORECASE):
-            continue
-        if re.search(r"role\s*=\s*['\"]img['\"]|data-chart", attrs, re.IGNORECASE):
-            continue
-        vb_m = re.search(r"viewBox\s*=\s*['\"][^'\"]*\b(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)['\"]", attrs, re.IGNORECASE)
-        if vb_m and max(float(vb_m.group(1)), float(vb_m.group(2))) >= 48 and float(vb_m.group(1)) != 960:
-            continue
-        has_use = bool(re.search(r"<use\b", body, re.IGNORECASE))
-        if not has_use and not _SVG_CHILD_RE.search(body) and "{" not in body:
-            issues.append("Empty inline <svg> element with zero vector geometry")
-            continue
-        if not has_use and not re.search(r"\bviewBox\s*=", attrs, re.IGNORECASE):
-            issues.append("Inline UI icon <svg> missing viewBox attribute")
-        if re.search(r"<path\b[^>]*\bd\s*=\s*['\"]\s*(?:NaN|undefined)?\s*['\"]", body, re.IGNORECASE):
-            issues.append("Corrupted or empty <path d=...> inside inline <svg>")
-        circles = re.findall(r"<circle\b([^>]*)/?>", body, re.IGNORECASE)
-        if len(circles) >= 3 and not re.search(r"<(?:path|line|polyline)\b", body, re.IGNORECASE):
-            svg_fill = 'fill="none"' not in attrs.lower() and "fill='none'" not in attrs.lower()
-            circle_fill = any("fill=" in c.lower() and "fill=\"none\"" not in c.lower() and "fill='none'" not in c.lower() for c in circles)
-            big_r = any(float(m.group(1)) >= 4.0 for c in circles if (m := re.search(r"\br\s*=\s*['\"]([0-9.]+)", c)))
-            if svg_fill or circle_fill or big_r:
-                issues.append("Amateur multi-circle bloop-cloud <svg> detected; use verified Lucide/Material SVG paths")
+        issues.extend(_inspect_single_svg(attrs, body))
     return issues
 
 
@@ -376,21 +414,31 @@ def _iter_css_blocks(stripped: str) -> list[tuple[str, str, str]]:
     """Extract (media_ctx, selector, declarations_body) pairs from HTML/CSS safely."""
     no_scripts = re.sub(r"<script\b[^>]*>[\s\S]*?</script>", " ", stripped, flags=re.IGNORECASE)
     css_text = re.sub(r"</?style\b[^>]*>", "\n", no_scripts, flags=re.IGNORECASE)
+    return _scan_css_blocks(css_text)
+
+
+def _pop_css_block(
+    stack: list[tuple[str, list[str]]], buf: list[str], blocks: list[tuple[str, str, str]]
+) -> None:
+    if len(stack) <= 1:
+        return
+    if buf:
+        stack[-1][1].append("".join(buf))
+    hdr, parts = stack.pop()
+    ctx = " | ".join(h for h, _ in stack if h.startswith("@"))
+    blocks.append((ctx, hdr, "".join(parts)))
+
+
+def _scan_css_blocks(css_text: str) -> list[tuple[str, str, str]]:
     stack: list[tuple[str, list[str]]] = [("", [])]
     blocks: list[tuple[str, str, str]] = []
     buf: list[str] = []
     for ch in css_text:
         if ch == "{":
-            hdr = "".join(buf).strip()
-            stack.append((hdr, []))
+            stack.append(("".join(buf).strip(), []))
             buf.clear()
         elif ch == "}":
-            if len(stack) > 1:
-                if buf:
-                    stack[-1][1].append("".join(buf))
-                hdr, parts = stack.pop()
-                ctx = " | ".join(h for h, _ in stack if h.startswith("@"))
-                blocks.append((ctx, hdr, "".join(parts)))
+            _pop_css_block(stack, buf, blocks)
             buf.clear()
         elif ch == ";":
             stack[-1][1].append("".join(buf) + ";")
@@ -428,7 +476,7 @@ def _infer_polarity(bucket_name: str, body_scheme: str | None, vals: dict[str, t
     if body_scheme in {"dark", "light"}:
         return body_scheme
     low = bucket_name.lower()
-    if "dark" in low or "night" in low or "obsidian" in low or "matte" in low:
+    if re.search(r"dark|night|obsidian|matte", low):
         return "dark"
     if "light" in low or "day" in low:
         return "light"
@@ -436,6 +484,23 @@ def _infer_polarity(bucket_name: str, body_scheme: str | None, vals: dict[str, t
         if surf in vals:
             return "dark" if vals[surf][0] < 0.50 else "light"
     return "light"
+
+
+def _resolve_root_maps(
+    root_light: dict[str, tuple[float, float, float]],
+    root_dark: dict[str, tuple[float, float, float]],
+    root_single: dict[str, tuple[float, float, float]],
+    root_aliases: dict[str, str],
+    root_scheme: str | None,
+) -> tuple[dict[str, tuple[float, float, float]], dict[str, tuple[float, float, float]]]:
+    if root_single:
+        pol = _infer_polarity("root", root_scheme, root_single)
+        target_root = root_dark if pol == "dark" else root_light
+        for k, v in root_single.items():
+            target_root.setdefault(k, v)
+    resolved_light = _resolve_var_aliases(root_light, root_aliases) if root_light else {}
+    resolved_dark = _resolve_var_aliases(root_dark, root_aliases) if root_dark else {}
+    return resolved_light, resolved_dark
 
 
 def _merge_extracted_themes(
@@ -446,13 +511,7 @@ def _merge_extracted_themes(
     root_scheme: str | None,
     themes: dict[str, dict[str, object]],
 ) -> dict[str, dict[str, tuple[float, float, float]]]:
-    if root_single:
-        pol = _infer_polarity("root", root_scheme, root_single)
-        target_root = root_dark if pol == "dark" else root_light
-        for k, v in root_single.items():
-            target_root.setdefault(k, v)
-    resolved_light = _resolve_var_aliases(root_light, root_aliases) if root_light else {}
-    resolved_dark = _resolve_var_aliases(root_dark, root_aliases) if root_dark else {}
+    resolved_light, resolved_dark = _resolve_root_maps(root_light, root_dark, root_single, root_aliases, root_scheme)
     maps: dict[str, dict[str, tuple[float, float, float]]] = {}
     if resolved_light:
         maps["root:light"] = resolved_light
@@ -465,9 +524,50 @@ def _merge_extracted_themes(
             continue
         pol = _infer_polarity(scope, data["scheme"], vals)  # type: ignore[arg-type]
         base = resolved_dark if pol == "dark" else resolved_light
-        merged = _resolve_var_aliases({**base, **vals}, {**root_aliases, **t_aliases}, locked=set(vals))
-        maps[f"{scope}:{pol}"] = merged
+        maps[f"{scope}:{pol}"] = _resolve_var_aliases({**base, **vals}, {**root_aliases, **t_aliases}, locked=set(vals))
     return maps
+
+
+def _extract_block_oklch_tokens(
+    body: str, blk_hue: float, root_light: dict[str, tuple[float, float, float]], root_dark: dict[str, tuple[float, float, float]]
+) -> tuple[dict[str, tuple[float, float, float]], dict[str, str]]:
+    ld_keys: set[str] = set()
+    for m in _LD_TOK_RE.finditer(body):
+        tok = m.group(1).lower()
+        ld_keys.add(tok)
+        root_light[tok] = (_norm_ok(m.group(2), m.group(3)), _norm_ok(m.group(4), m.group(5), 0.4), _parse_hue(m.group(6), blk_hue))
+        root_dark[tok] = (_norm_ok(m.group(7), m.group(8)), _norm_ok(m.group(9), m.group(10), 0.4), _parse_hue(m.group(11), blk_hue))
+    singles = {
+        m.group(1).lower(): (_norm_ok(m.group(2), m.group(3)), _norm_ok(m.group(4), m.group(5), 0.4), _parse_hue(m.group(6), blk_hue))
+        for m in _SINGLE_TOK_RE.finditer(body)
+        if m.group(1).lower() not in ld_keys
+    }
+    aliases = {m.group(1).lower(): m.group(2).lower() for m in _VAR_ALIAS_RE.finditer(body)}
+    return singles, aliases
+
+
+def _record_scoped_tokens(
+    scope: str,
+    body: str,
+    singles: dict[str, tuple[float, float, float]],
+    aliases: dict[str, str],
+    root_single: dict[str, tuple[float, float, float]],
+    root_aliases: dict[str, str],
+    themes: dict[str, dict[str, object]],
+    root_scheme: str | None,
+) -> str | None:
+    scheme_m = _COLOR_SCHEME_RE.search(body)
+    scheme_val = scheme_m.group(1).lower() if scheme_m else None
+    if scope == "root":
+        root_single.update(singles)
+        root_aliases.update(aliases)
+        return scheme_val if scheme_val in {"dark", "light"} and "light dark" not in body.lower() else root_scheme
+    bucket = themes.setdefault(scope, {"vals": {}, "aliases": {}, "scheme": None})
+    bucket["vals"].update(singles)  # type: ignore[union-attr]
+    bucket["aliases"].update(aliases)  # type: ignore[union-attr]
+    if scheme_val:
+        bucket["scheme"] = scheme_val
+    return root_scheme
 
 
 def extract_theme_oklch_maps(stripped: str) -> dict[str, dict[str, tuple[float, float, float]]]:
@@ -487,31 +587,7 @@ def extract_theme_oklch_maps(stripped: str) -> dict[str, dict[str, tuple[float, 
             continue
         b_hue_m = _BRAND_HUE_NUM_RE.search(body)
         blk_hue = float(b_hue_m.group(1)) if b_hue_m else default_hue
-        scheme_m = _COLOR_SCHEME_RE.search(body)
-        scheme_val = scheme_m.group(1).lower() if scheme_m else None
-        ld_keys: set[str] = set()
-        for m in _LD_TOK_RE.finditer(body):
-            tok = m.group(1).lower()
-            ld_keys.add(tok)
-            lt = (_norm_ok(m.group(2), m.group(3)), _norm_ok(m.group(4), m.group(5), 0.4), _parse_hue(m.group(6), blk_hue))
-            dk = (_norm_ok(m.group(7), m.group(8)), _norm_ok(m.group(9), m.group(10), 0.4), _parse_hue(m.group(11), blk_hue))
-            root_light[tok], root_dark[tok] = lt, dk
-        singles = {
-            m.group(1).lower(): (_norm_ok(m.group(2), m.group(3)), _norm_ok(m.group(4), m.group(5), 0.4), _parse_hue(m.group(6), blk_hue))
-            for m in _SINGLE_TOK_RE.finditer(body)
-            if m.group(1).lower() not in ld_keys
-        }
-        aliases = {m.group(1).lower(): m.group(2).lower() for m in _VAR_ALIAS_RE.finditer(body)}
-        if scope == "root":
-            root_single.update(singles)
-            root_aliases.update(aliases)
-            if scheme_val in {"dark", "light"} and "light dark" not in body.lower():
-                root_scheme = scheme_val
-        else:
-            bucket = themes.setdefault(scope, {"vals": {}, "aliases": {}, "scheme": None})
-            bucket["vals"].update(singles)  # type: ignore[union-attr]
-            bucket["aliases"].update(aliases)  # type: ignore[union-attr]
-            if scheme_val:
-                bucket["scheme"] = scheme_val
+        singles, aliases = _extract_block_oklch_tokens(body, blk_hue, root_light, root_dark)
+        root_scheme = _record_scoped_tokens(scope, body, singles, aliases, root_single, root_aliases, themes, root_scheme)
 
     return _merge_extracted_themes(root_light, root_dark, root_single, root_aliases, root_scheme, themes)
