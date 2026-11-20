@@ -55,53 +55,27 @@ Never declare `container-type: inline-size` and `grid-template-rows: subgrid` on
   @container moduleBox (min-width: 28rem) { .card-body { grid-template-columns: 1fr auto; align-items: center; } }
 }
 ```
-- **4 `<article>` Card Variants:** `Elevated` (primary workbench slab), `Outlined` (`1px solid var(--border-side)`), `Filled` (carved `--bg-well` track), and `Interactive` (expanded click area via `a.card-link::after { content: ""; position: inset 0; }` without `<div onClick>`).
-- **Typography Defaults (`@layer base`):** Keep `-webkit-font-smoothing: antialiased; font-optical-sizing: auto; font-synthesis: none; text-rendering: auto;` on `body`; restrict `text-rendering: optimizeLegibility;` and `clamp()` ($\max \le 2.5\times \min$) to `h1, h2, h3`; enforce `max-inline-size: 65ch` on prose and `font-variant-numeric: tabular-nums;` on telemetry.
-
-## 4. Expandable Menus, Custom `<select>`, Natural States & Interactive Lists
+- **5-State FSM & Resizable `@container` Craft Card:** Bind interactive flows to `idle | loading | empty | error | success` inside `role="status"` / `role="alert"` (zero placeholder stubs, zero `forwardRef`). Use GPU `.skip-link`, Silent CSS Breadcrumbs (`::before`), `display: flow-root`, `.prose > * + *`, `text-wrap: balance/pretty`, and clean OKLCH `@container` cards (never `@media` inside cards, never `transition-all`):
 ```css
 @layer components {
-  .theme-select, .theme-select::picker(select) { appearance: base-select; }
-  .theme-select::picker-icon { transition: transform 0.2s var(--ease-out); }
-  .theme-select:open::picker-icon { transform: rotate(180deg); }
-  .theme-select::picker(select) {
-    opacity: 0; transform: translateY(-4px) scale(0.98); /* Keep scrollable: NEVER overflow: hidden */
-    transition: opacity 0.18s var(--ease-out), transform 0.18s var(--ease-out), display 0.18s, overlay 0.18s;
-    transition-behavior: allow-discrete;
-  }
-  .theme-select:open::picker(select) { opacity: 1; transform: translateY(0) scale(1); }
-  .seg-btn[aria-pressed="true"]::before { content: ""; inline-size: 0.375rem; block-size: 0.375rem; border-radius: 9999px; background: var(--brand-primary); }
-  .nav-btn:active, .tactile-key:active { scale: 0.98; }
-  .list-row-btn { min-block-size: 48px; transition: transform 0.15s var(--ease-out), scale 0.12s var(--ease-out), background-color 0.15s ease; }
-  .row-action-hint { opacity: 0; transition: opacity 0.15s ease; }
-  .list-row-btn:is(:hover, :focus-within, [aria-pressed="true"]) .row-action-hint { opacity: 1; }
-  @media (hover: none) { .row-action-hint { opacity: 1; } }
-  .accordion-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.24s var(--ease-out); }
-  .accordion-item[data-open="true"] .accordion-panel { grid-template-rows: 1fr; }
-  .accordion-inner { overflow: hidden; min-block-size: 0; }
-  dialog[open], [popover]:popover-open {
-    opacity: 1; transform: translateY(0) scale(1);
-    transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out), display 0.2s, overlay 0.2s;
-    transition-behavior: allow-discrete;
-  }
-  @starting-style { dialog[open], [popover]:popover-open, .theme-select:open::picker(select) { opacity: 0; transform: translateY(0.5rem) scale(0.98); } }
-  :where(a, button, input, select, textarea, summary, [tabindex="0"], [role="button"], [role="tab"]):focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; }
-  main[tabindex="-1"]:focus, main[tabindex="-1"]:focus-visible, :where(h1, h2, h3)[tabindex="-1"]:focus, :where(h1, h2, h3)[tabindex="-1"]:focus-visible { outline: none; }
-  input:user-invalid { border-color: var(--bead-danger); }
-  .control-box:has(:checked) { border-color: var(--brand-primary); }
-  /* Fitts hitbox expansion: 24px visual swatch inside >= 44x44px button + 44px range track + uncramped nav */
-  .swatch-btn { position: relative; min-inline-size: 44px; min-block-size: 44px; }
-  .swatch-btn::before { content: ""; position: absolute; inset: 0; margin: auto; inline-size: 24px; block-size: 24px; border-radius: inherit; }
-  input[type="range"] { min-block-size: 44px; }
-  nav :where(ul, .nav-list) { gap: 0.5rem; }
-  .mobile-tab-btn { font-size: 0.8125rem; min-block-size: 44px; }
-  /* In JS init(): pass { focus: false } on initial route render; add <link rel="icon" type="image/svg+xml"> to avoid /favicon.ico 404. */
-  @media (any-pointer: coarse) { button, a, summary, [role="button"] { min-block-size: 48px; min-inline-size: 48px; touch-action: manipulation; } }
-  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none; transition-duration: 0.01ms; } }
+  .skip-link { position: fixed; inset-block-start: 1rem; inset-inline-start: 1rem; transform: translateY(-200%); transition: transform 0.16s var(--ease-out); background: var(--brand-fill); color: var(--ink-on-brand); }
+  .skip-link:focus-visible { transform: translateY(0); }
+  .breadcrumbs ol { display: flex; gap: 0.5rem; list-style: none; }
+  .breadcrumbs li + li::before { content: "/"; margin-inline-end: 0.5rem; color: var(--ink-muted); }
+  .section-bfc { display: flow-root; }
+  .prose { max-inline-size: 65ch; text-wrap: pretty; }
+  .prose > * + * { margin-block-start: 1.25em; }
+  h1, h2, h3 { text-wrap: balance; }
+  .cq-card { container: card / inline-size; resize: both; overflow: auto; min-inline-size: 280px; background: var(--bg-card); box-shadow: var(--shadow-elevation-1); border-radius: var(--r-outer); padding: clamp(1rem, 4cqw, 1.5rem); transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out); }
+  .cq-grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+  @container card (min-width: 360px) { .cq-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 }
 ```
-- Keep DOM source order identical to visual focus order (`DOM == Tab Order`): strictly ban `flex-direction: row-reverse` and positive `order`/`tabindex`. Apply CSS `reading-flow` only progressively where supported without breaking DOM order.
+```html
+<a href="#main-content" class="skip-link">Skip to content</a>
+<nav class="breadcrumbs" aria-label="Breadcrumb"><ol role="list"><li><a href="/">Home</a></li><li><a href="/metrics" aria-current="page">Metrics</a></li></ol></nav>
+```
 
-## 5. Verified `24x24` `<symbol>` SVGs & Real 5-State FSM
-- Preload crisp stroke icons inside `<svg hidden aria-hidden="true" width="0" height="0"><symbol id="ic-..." viewBox="0 0 24 24">...</symbol></svg>` and reference via `<svg width="20" height="20" aria-hidden="true"><use href="#ic-check"/></svg>`.
-- Bind all interactive flows to an explicit 5-state FSM (`type UIState = "idle" | "loading" | "empty" | "error" | "success"`) with retry recovery inside `role="status"` / `role="alert"` and zero placeholder stubs.
+## 4. Expandable Menus, Custom `<select>`, Focus/Fitts & Verified `<symbol>` SVGs
+- **Native Controls & Motion:** Use `appearance: base-select` + `::picker(select)` (`opacity`/`transform`, `allow-discrete` + `@starting-style`), `0fr -> 1fr` grid accordions, native `<details>`/`[popover]`, `.seg-btn[aria-pressed="true"]::before`, and `.list-row-btn { min-block-size: 48px; }`.
+- **Ergonomics, Focus & Sprites:** Keep `DOM == Tab Order` (ban `row-reverse`, positive `order`, `grid-auto-flow: dense`). Scope `:focus-visible` strictly to interactive controls (suppress `main[tabindex="-1"]`), expand compact swatches/ranges to `>= 44x44px` (`>= 48x48px` under `any-pointer: coarse` + `touch-action: manipulation`), keep `nav gap >= 0.5rem` & `.mobile-tab-btn >= 0.8125rem`, honor `@media (prefers-reduced-motion: reduce)`, add `<link rel="icon" type="image/svg+xml">`, and inline `<svg hidden><symbol id="ic-..." viewBox="0 0 24 24">` sprites referenced via `<use href="#ic-..."/>`.

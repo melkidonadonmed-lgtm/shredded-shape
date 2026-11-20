@@ -97,7 +97,7 @@ def download_verified_asset(url: str, dest: Path) -> StitchAssetCheck:
     """Download an allowlisted HTTPS Stitch asset and return SHA-256 Read-After-Write proof."""
     safe_url = validate_stitch_asset_url(url)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    req = urllib.request.Request(safe_url, headers={"User-Agent": "shredded-shape-stitch-bridge/1.5.1"})
+    req = urllib.request.Request(safe_url, headers={"User-Agent": "shredded-shape-stitch-bridge/1.6.0"})
     with urllib.request.urlopen(req, timeout=30) as resp:
         data = resp.read()
     dest.write_bytes(data)

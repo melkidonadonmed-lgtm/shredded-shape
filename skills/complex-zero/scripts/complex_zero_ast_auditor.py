@@ -27,6 +27,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import _ss_core
+import _ss_craft_guards
 import _ss_guards
 from visual_hierarchy_and_cdp_probe import (
     CHROME_DEVTOOLS_EVALUATE_SCRIPT,
@@ -40,7 +41,6 @@ EMPTY_ARROW_OR_FN_RE = re.compile(r"(?:=>\s*\{\s*\}|function\s+[a-zA-Z0-9_]*\s*\
 CONSOLE_ONLY_BODY_RE = re.compile(r"=>\s*\{\s*console\.log\([^}]*\)\s*;?\s*\}")
 FAKE_TELEMETRY_RANDOM_RE = re.compile(r"(?:fps|cpu|latency|memory|metric)[a-zA-Z0-9_]*\s*:\s*[^,\n]*Math\.random\(\)", re.IGNORECASE)
 HARDCODED_OKLCH_VALID_RE = re.compile(r"oklchContrastValid\s*:\s*true\b")
-DIV_ONCLICK_NO_ROLE_RE = re.compile(r"<div\b(?![^>]*\brole=)[^>]*\bonClick=", re.IGNORECASE)
 OUTLINE_NONE_RE = re.compile(r"outline\s*:\s*(?:none|0)\b")
 FOCUS_VISIBLE_RE = re.compile(r":focus-visible\b")
 POINTER_COARSE_RE = re.compile(r"any-pointer\s*:\s*coarse|pointer\s*:\s*coarse")
@@ -53,7 +53,12 @@ SYNC_NEXT15_PARAMS_RE = re.compile(r"export\s+default\s+function\s+\w+\s*\(\s*\{
 ASYNC_NEXT15_PARAMS_RE = re.compile(r"Promise<\s*\{[^}]*\}\s*>")
 EMPTY_CATCH_RE = re.compile(r"\bcatch\s*(?:\([^)]*\))?\s*\{\s*\}")
 FORWARD_REF_RE = re.compile(r"\bforwardRef\s*(?:<|\()")
-UNSAFE_HTML_RE = re.compile(r"dangerouslySetInnerHTML\s*=")
+_RF_TAG_RE = re.compile(r"<ReactFlow\b", re.IGNORECASE)
+_INLINE_RF_TYPES_RE = re.compile(r"\b(?:nodeTypes|edgeTypes)\s*=\s*\{\{")
+_LOCAL_RF_TYPES_RE = re.compile(r"\b(?:const|let)\s+(?:nodeTypes|edgeTypes)\s*=\s*\{")
+_PATH_REL_RE = re.compile(r"\bpath\.relative\s*\(")
+_BARE_REL_RE = re.compile(r"(?<![.\w])relative\s*\(")
+_NORM_PATH_RE = re.compile(r"posix\.relative|replace(?:All)?\([^)]*\\\\|split\([^)]*\)\.join\(|normalize\w*Path")
 
 
 def _evaluate_axis_1(
@@ -110,6 +115,46 @@ def _count_non_context_empty_fns(combined: str) -> int:
     return len(EMPTY_ARROW_OR_FN_RE.findall(filtered))
 
 
+def _has_nested_rf_types(stripped: str) -> bool:
+    masked_str = _ss_core._TOKENIZER_RE.sub(lambda m: " " * len(m.group(0)), stripped)
+    depth = 0
+    for line in masked_str.splitlines():
+        if depth > 0 and _LOCAL_RF_TYPES_RE.search(line) and "useMemo" not in line:
+            return True
+        depth = max(0, depth + line.count("{") - line.count("}"))
+    return False
+
+
+def _check_xyflow_and_path_hygiene(sources: dict[str, str], findings: list[dict[str, Any]]) -> int:
+    penalty = 0
+    unhoisted_hit = False
+    path_hit = False
+    for rel, raw_src in sources.items():
+        if Path(rel).suffix.lower() not in {".ts", ".tsx", ".js", ".jsx"}:
+            continue
+        stripped = _ss_core.strip_comments(raw_src)
+        for m in _RF_TAG_RE.finditer(stripped):
+            tag, _ = _ss_guards._scan_jsx_opening_tag(stripped, m.start())
+            if _INLINE_RF_TYPES_RE.search(tag):
+                unhoisted_hit = True
+        if not unhoisted_hit and _has_nested_rf_types(stripped):
+            unhoisted_hit = True
+        has_path_imp = bool(re.search(r"from\s+['\"](?:node:)?path['\"]", stripped))
+        lines = stripped.splitlines()
+        for idx, line in enumerate(lines):
+            if _PATH_REL_RE.search(line) or (has_path_imp and _BARE_REL_RE.search(line)):
+                win = "\n".join(lines[max(0, idx - 1) : min(len(lines), idx + 3)])
+                if not _NORM_PATH_RE.search(win):
+                    path_hit = True
+    if unhoisted_hit:
+        penalty += 10
+        findings.append({"axis": 3, "severity": "CRITICAL", "rule": "XYFLOW_UNHOISTED_NODE_TYPES", "detail": "Inline or component-scoped nodeTypes/edgeTypes causes 60fps remount thrashing (-10 pts)"})
+    if path_hit:
+        penalty += 5
+        findings.append({"axis": 3, "severity": "WARN", "rule": "WINDOWS_PATH_SEPARATOR_UNNORMALIZED", "detail": "path.relative() without '/' normalization breaks Windows chokidar/WebSocket matching (-5 pts)"})
+    return penalty
+
+
 def _evaluate_axis_3(combined: str, sources: dict[str, str], root_dir: Path | None, org_rep: UnifiedVisualOrgReport, findings: list[dict[str, Any]]) -> int:
     score = 25
     if LEGACY_REACTFLOW_IMPORT_RE.search(combined):
@@ -133,10 +178,10 @@ def _evaluate_axis_3(combined: str, sources: dict[str, str], root_dir: Path | No
     if FORWARD_REF_RE.search(combined):
         score -= 5
         findings.append({"axis": 3, "severity": "WARN", "rule": "REACT19_LEGACY_FORWARD_REF", "detail": "Legacy forwardRef detected; pass ref as prop in React 19 (-5 pts)"})
-    is_fouc = "localStorage.getItem" in combined and "setAttribute('data-theme'" in combined.replace('"', "'")
-    if UNSAFE_HTML_RE.search(combined) and "DOMPurify" not in combined and not is_fouc:
+    if any(_ss_craft_guards.find_unsafe_html_sinks(Path(k), v) for k, v in sources.items()):
         score -= 15
-        findings.append({"axis": 3, "severity": "CRITICAL", "rule": "UNSANITIZED_HTML_SINK", "detail": "dangerouslySetInnerHTML without DOMPurify.sanitize() (-15 pts)"})
+        findings.append({"axis": 3, "severity": "CRITICAL", "rule": "UNSANITIZED_HTML_SINK", "detail": "Unsanitized HTML/eval sink detected (-15 pts)"})
+    score -= _check_xyflow_and_path_hygiene(sources, findings)
     if oversized := [k for k, v in sources.items() if len(v.splitlines()) > 600]:
         score -= 10
         findings.append({"axis": 3, "severity": "CRITICAL", "rule": "CAP_600L_EXCEEDED", "detail": f"Files exceed 600 lines: {', '.join(oversized[:3])} (-10 pts)"})
@@ -203,7 +248,7 @@ def audit_source_bundle(sources: dict[str, str], root_dir: Path | None = None, l
     total = s1 + s2 + s3 + s4
     verdict = "[PASS]" if total >= 90 else ("[WARN]" if total >= 75 else "[FAIL]")
     return {
-        "skill": "complex-zero", "version": "1.4.0", "verdict": verdict, "total_score": total,
+        "skill": "complex-zero", "version": "1.6.0", "verdict": verdict, "total_score": total,
         "axes": {"eixo_1_interatividade_fitts": s1, "eixo_2_macro_micro_oklch": s2, "eixo_3_xyflow_ast_antifake": s3, "eixo_4_nextjs15_async_params": s4},
         "visual_organization_and_hierarchy": asdict(org_rep),
         "nav_x_func_bridge": _bridge_sga_score(root_dir),

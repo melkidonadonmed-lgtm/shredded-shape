@@ -6,8 +6,8 @@ compatibility: "Antigravity 2.0 / Claude Code / Gemini CLI with Python 3.12+ (uv
 allowed-tools: "read_file write_file edit_file run_command call_mcp_tool"
 metadata:
   author: "shredded-shape"
-  version: "1.5.1"
-  updated_at: "2026-11-18"
+  version: "1.6.0"
+  updated_at: "2026-11-19"
   category: "stitch-canvas-bridge"
   tags: "stitch-canvas, stitch-cli, stitch-mcp, capture-screen, generate-screen, canvas-bridge, stitch-variants"
 ---
@@ -34,7 +34,7 @@ Operate under **Zero-Trust Secret Hygiene** (`~/.stitch.json` / MCP headers only
 
 ## Gotchas
 - **Full-Res Screenshots:** Always pass `=w{width}` via `normalize-url` to avoid low-res thumbnails.
-- **Zero Production Slop:** Strip Stitch Tailwind v3 CDN/config blocks, `#000000`, `href="#"`, fake `"99.98% UPTIME"` stats, and `"LABEL // YEAR"` headers before shipping.
+- **Zero Production Slop:** Strip Stitch Tailwind v3 CDN/config blocks, `#000000`, `href="#"`, fake `"99.98% UPTIME"` stats, `"LABEL // YEAR"` headers, gradient-text clips, decorative side-stripes, and ALL-CAPS eyebrow clutter before shipping.
 - **Canonical URLs:** Always resolve Canvas links with `stitch url project <id>` / `stitch url screen <sid> --project <id>`.
 
 ## Output

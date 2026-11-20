@@ -19,7 +19,17 @@ Every Stage 0 forensic scan inspects and scores these **12 concrete AI-Slop & Cr
 | **11. Layout-Thrashing Reflow Motion** | `transition: all | width | height | top | left | margin | padding`; modals without `@starting-style` + `allow-discrete`. | `+12..45` / `[FAIL]` | GPU `transform` & `opacity`, `0fr -> 1fr` accordions, standalone `transition-behavior: allow-discrete`, `@media (prefers-reduced-motion: reduce)`. |
 | **12. Visual/Tab Desync & Touch Sprawl** | `flex-direction: row-reverse`, positive `order`/`tabindex`, `> 6` stacked tabs, `outline: none` without `:focus-visible`, `< 44px`/`48px` targets. | Critical A11y `[FAIL]` | Exact `DOM == Tab Order`, `<= 6` nav items per `<nav>`, `:focus-visible`, `min-block-size >= 44px` (`48px` `any-pointer: coarse`). |
 
-## 2. Diagnostic Priority & Scanner Alignment
-1. **Structural & Zero-Trust Blockers (`#1–#6`, `#11–#12`):** `frontend_inventory_and_slop_scanner.py` and `verify_raw_frontend.py` fail fast on pure black, neon chroma, blobs, confetti, dashed wireframes, UI emojis, pseudo-icons (`_ss_guards.find_pseudo_icon_hits`), explicit `< 40px` hit-target overrides (`_ss_guards.find_target_size_overrides`), reflow transitions, and visual/tab order inversion while keeping `__tests__/` and `.ts` A4 print templates isolated.
-2. **Modular Splits Across Multi-File Bundles (`#10`):** Multi-file scans flag every `.html`/`.css`/`.js`/`.tsx` file exceeding `600` lines in `before_after_proposals` (`target_pattern: "route_split"`), not just single-file scans.
+## 2. Extended Craft, Layout & AppSec Debt Patterns (`v1.6.0`)
+| Defect Pattern | Failing Signal (`[FAIL]` / `WARNING`) | Clean Craft Replacement (`[PASS]`) |
+| :--- | :--- | :--- |
+| **Gradient Text Clip** | `background-clip: text` + `transparent`, or Tailwind `bg-clip-text text-transparent`. | Crisp solid OKLCH ink (`--ink-primary`) and typographic weight hierarchy (`ANTI-SLOP-GRADIENT-TEXT`). |
+| **Decorative Side-Stripes** | Thick colored `border-left >= 3px` (`border-l-4`) on generic cards/menus (qualitative heuristic). | Clean uniform surface with zenithal bevel (`inset 0 1px 0`) and subtle `::before` active rail bars. |
+| **Hyper-Rounded & Fake Chrome** | Pill-shaped cards (`> 16px`), fake `01/02/03` non-sequential counters, ALL-CAPS `EXPLORE` eyebrows. | Disciplined `6px–16px` card radii (pills reserved for `.engraved-pill` tags) and concise microcopy. |
+| **Mystery Nav & Card `@media`** | Icon-only `<nav>` without label/tooltip; `@media (min-width)` inside isolated cards; `grid-auto-flow: dense`. | `:is(:hover, :focus-visible)` tooltips on rails, `@container` + `cqw` inside cards, natural DOM flow. |
+| **Client Secrets & Omissions** | `NEXT_PUBLIC_*`/`VITE_*` secret keys (`AUDIT-SEC-ENV-LEAK`), `// ... rest of code` (`AUDIT-STUB-PLACEHOLDER`), raw `.innerHTML`/`eval`. | Server-only secrets (`[REDACTED]` logging), full code implementation, per-sink `DOMPurify.sanitize()`. |
+| **`<feColorMatrix>` Isolation** | Combining `<feGaussianBlur>` + `<feColorMatrix>` inside the **same** `<filter>` block (`has_gooey_filter_blob`). | Keep duotone/daltonism `<feColorMatrix>` filters inside standalone `<filter>` elements separate from any blur filter. |
+
+## 3. Diagnostic Priority & Scanner Alignment
+1. **Structural & Zero-Trust Blockers (`#1–#6`, `#11–#12` + `v1.6.0`):** `frontend_inventory_and_slop_scanner.py` and `verify_raw_frontend.py` fail fast via `_ss_craft_guards.py` and `_ss_guards.py` while keeping `__tests__/`, `.ts` A4 print templates, and standalone `<feColorMatrix>` filters isolated.
+2. **Modular Splits Across Multi-File Bundles (`#10`):** Multi-file scans flag every `.html`/`.css`/`.js`/`.tsx` file exceeding `600` lines in `before_after_proposals` (`target_pattern: "route_split"`).
 3. **UI Color Mixing Guidance:** Flag `color-mix(in oklch, ...)` in UI hover/border declarations (`OPTICS-COLOR-MIX-OKLAB`) and recommend `color-mix(in oklab, ...)` to prevent Chromium gamut-arc shifts.

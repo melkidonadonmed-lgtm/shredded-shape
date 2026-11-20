@@ -1,16 +1,19 @@
 {
-  "objective": "Closed-Loop 4-Stage Actor-Critic UI/UX Pipeline (Forensic Analyst -> Brand/Style Planner -> Clean ReAct Worker <-> Read-Only WCAG 2.2 OKLCH Judge) with <= 5 Active Rules per Node",
+  "version": "1.6.0",
+  "objective": "Closed-Loop 4-Stage Actor-Critic UI/UX Pipeline with Unrolled Discovery (Forensic Analyst <-> Brand/Style Planner max 1 hop -> Clean ReAct Worker <-> Double-Pass 3-Axis Read-Only Judge) and <= 5 Active Rules per Node",
+  "routing_modes": ["refactor", "greenfield", "planner_directed"],
+  "max_discovery_hops": 1,
   "acceptance_criteria": [
-    "Stage 0 (ui-analyst): Inventory tokens, colors, fonts, icons, menus, spacing, contracts, stack, DevTools/REA telemetry, AI Slop score, and CLAREZA Before/After navigation diagram",
-    "Stage 1 (ui-planner): Calibrate brand OKLCH 60-30-10 (zero neon), select Style Archetype (Soft..Clinical) & Spatial Archetype (of 6), source Stitch/Figma/Fonts/3D assets, emit DESIGN.md blueprint, and compile <=5-rule DAG without file collisions",
-    "Stage 2 (ui-worker): Materialize DESIGN.md on disk and implement clean Light/Dark UI with 3-layer light shadows, dark-mode specular rim/halo lighting, superior matte glass, @container/subgrid, 4 Card Variants, real FSM, and Read-After-Write SHA-256 + tsc verification",
-    "Stage 3 (ui-judge): Run read-only WCAG 2.2 OKLCH contrast (FNR < 0.001), 4-Pillar Readiness (>= 90), 6-Dimension UI/UX (>= 85), 48x48px touch, :focus-visible, DOM==Tab, anti-XSS, and anti-Slop checks; loop Self-Refine on REJECTED up to max_refinement_rounds=3 before HITL escalation"
+    "Stage 0 (ui-analyst): Headless-safe CoT-0 Intent-First probe, tokens/shadows/warning/menu-char/canvas inventory, DevTools/REA telemetry, AppSec secrets/omissions, AI Slop score, and causal Friction X -> Impact Y CLAREZA report",
+    "Stage 1 (ui-planner): Order-dependent ToT (post-analysis DESIGN.md+DAG or 1-hop analysis-directed brief), 4 execution routing intents, risk-based ambiguity triage, OKLCH 60-30-10 + @theme inline shadows, Phase 0 Scope Lock, and <=5-rule disjoint DAG",
+    "Stage 2 (ui-worker): Materialize DESIGN.md and build clean Light/Dark UI with 3-layer shadows, dark zenithal rim lighting, matte glass, @container/subgrid, silent CSS breadcrumbs, GPU .skip-link, real FSM, zero secrets/omissions, and RAW SHA-256 + tsc",
+    "Stage 3 (ui-judge): Run Double-Pass (Macro + Micro) 3-Axis Judge (ui_code, execution_plan, technical_audit) with deterministic P0..P3 tiers, WCAG 2.2 OKLab contrast (FNR < 0.001), 4-Pillar >= 90, 6-Dim >= 85, and Self-Refine max_self_refine_rounds=3 before HITL"
   ],
   "tasks": [
     {
       "id": "stage0_ui_analyst",
       "group_id": "ui_analyst",
-      "description": "Stage 0: Forensic inventory, Chrome DevTools probe, AI Slop score, and Before/After navigation refactor proposals",
+      "description": "Stage 0: Headless-safe Intent-First forensic inventory, Chrome DevTools probe, AppSec/slop score, and causal CLAREZA report",
       "criticality": "HIGH",
       "payload": {
         "agent_spec": "agents/ui-analyst.md",
@@ -20,13 +23,15 @@
         "max_rules_per_node": 5,
         "max_steps": 10,
         "stop_condition": "CLAREZA_REPORT_EMITTED",
-        "read_only": true
+        "read_only": true,
+        "accepts_scoped_probe_from": "stage1_ui_planner",
+        "probe_contract": "ScopedAuditRequest -> CLAREZA_DELTA"
       }
     },
     {
       "id": "stage1_ui_planner",
       "group_id": "ui_planner",
-      "description": "Stage 1: Brand, OKLCH 60-30-10, 7 Style Archetypes, Stitch/Figma/Fonts/3D assets, zero-verbiage UX, DESIGN.md & bounded DAG",
+      "description": "Stage 1: Order-dependent ToT (post-analysis or 1-hop directed probe), risk-based ambiguity triage, OKLCH/@theme, Phase 0 Scope Lock & bounded DAG",
       "dependencies": ["stage0_ui_analyst"],
       "criticality": "HIGH",
       "payload": {
@@ -37,13 +42,16 @@
         "max_rules_per_node": 5,
         "max_steps": 8,
         "stop_condition": "DESIGN_AND_DAG_EMITTED",
-        "read_only": true
+        "read_only": true,
+        "entry_modes": ["audit_first", "intent_first", "greenfield"],
+        "scoped_probe_target": "stage0_ui_analyst",
+        "max_probe_rounds": 1
       }
     },
     {
       "id": "stage2_ui_worker",
       "group_id": "ui_worker",
-      "description": "Stage 2: ReAct clean Light/Dark implementation, matte glass, dark rim lighting, RAW SHA-256 + tsc verification",
+      "description": "Stage 2: ReAct clean Light/Dark implementation, @theme shadows, silent breadcrumbs, GPU skip-link, zero secrets/omissions, RAW SHA-256 + tsc",
       "dependencies": ["stage1_ui_planner"],
       "criticality": "HIGH",
       "payload": {
@@ -60,7 +68,7 @@
     {
       "id": "stage3_ui_judge",
       "group_id": "ui_judge",
-      "description": "Stage 3: Read-only WCAG 2.2 OKLCH Judge (FNR < 0.001) + Actor-Critic Self-Refine loop back to stage2_ui_worker",
+      "description": "Stage 3: Double-Pass 3-Axis Judge (ui_code, execution_plan, technical_audit) with WCAG 2.2 OKLab & Actor-Critic Self-Refine loop",
       "dependencies": ["stage2_ui_worker"],
       "criticality": "HIGH",
       "payload": {
@@ -72,8 +80,9 @@
         "max_steps": 8,
         "stop_condition": "JUDGE_VERDICT_EMITTED",
         "read_only": true,
+        "judge_axes": ["ui_code", "execution_plan", "technical_audit"],
+        "severity_tiers": ["P0_BLOCKER", "P1_HIGH", "P2_MEDIUM", "P3_NIT"],
         "self_refine_target": "stage2_ui_worker",
-        "max_refinement_rounds": 3,
         "max_self_refine_rounds": 3,
         "fnr_target": 0.001
       }

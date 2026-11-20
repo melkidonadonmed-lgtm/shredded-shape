@@ -26,6 +26,7 @@ for _cand in (*(p / "scripts" for p in _HERE.parents if (p / "pyproject.toml").i
         break
 
 import _ss_core
+import _ss_craft_guards
 import _ss_guards
 
 VAR_DECL_RE = re.compile(r"(--[a-zA-Z0-9_-]+)\s*:")
@@ -81,6 +82,8 @@ class FrontendInventoryReport(BaseModel):
     navigation_mermaid: str
     before_after_proposals: list[NavigationRefactorProposal]
     ai_slop_score: int = Field(ge=0, le=100)
+    root_hygiene_warnings: list[str] = Field(default_factory=list)
+    menu_label_audit: list[str] = Field(default_factory=list)
 
 
 NavigationRefactorProposal.model_rebuild()
@@ -95,7 +98,12 @@ def _detect_stack(root: Path, combined_text: str) -> list[str]:
         pkg_file = base.parent / "package.json"
     if pkg_file.is_file():
         raw = pkg_file.read_text(encoding="utf-8", errors="ignore")
-        pairs = (("next", "Next.js"), ("react", "React"), ("tailwindcss", "Tailwind CSS"), ("three", "Three.js"), ("framer-motion", "Motion"), ("motion", "Motion"), ("@xyflow/react", "@xyflow/react"))
+        pairs = (
+            ("next", "Next.js"), ("react", "React"), ("tailwindcss", "Tailwind CSS"),
+            ("three", "Three.js"), ("framer-motion", "Motion"), ("motion", "Motion"),
+            ("@xyflow/react", "@xyflow/react"), ("reactflow", "legacy reactflow"),
+            ("dagre", "Dagre"), ("@dagrejs/dagre", "Dagre"), ("ws", "WebSocket"), ("chokidar", "Chokidar"),
+        )
         for key, label in pairs:
             if f'"{key}"' in raw and label not in stack:
                 stack.append(label)
@@ -166,8 +174,11 @@ def _scan_line_defects(fp: Path, rel: str, raw_text: str, stripped: str, hex_loc
         defects.append(f"{rel}:{ln} [AUDIT-VIS-PSEUDO-ICON] non-SVG glyph '{snippet}'")
     for ln, snippet, _ in _ss_guards.find_target_size_overrides(fp, raw_text):
         defects.append(f"{rel}:{ln} [FITTS-TARGET-SIZE] interactive hit target < 40px ({snippet})")
-    if "<feGaussianBlur" in stripped and "<feColorMatrix" in stripped and not any("ANTI-SLOP-BLOB" in d for d in defects):
+    if _ss_craft_guards.has_gooey_filter_blob(stripped):
         defects.append(f"{rel}:1 [ANTI-SLOP-BLOB] SVG gooey filter detected")
+    for hit in _ss_craft_guards.run_craft_and_sec_guards(fp, raw_text, stripped, masked, profile="analyst"):
+        if hit.severity == "CRITICAL":
+            defects.append(f"{rel}:{hit.line} [{hit.rule_id}] {hit.message}")
 
 
 def _unverified_report(target_path: Path) -> FrontendInventoryReport:
@@ -177,13 +188,16 @@ def _unverified_report(target_path: Path) -> FrontendInventoryReport:
         light_dark_count=0, font_families=[], imported_icon_libs=[], inline_svg_count=0,
         emoji_hits=0, spacing_and_style_defects=[], component_contracts=[], navigation_targets=[],
         navigation_mermaid="flowchart LR", before_after_proposals=[], ai_slop_score=0,
+        root_hygiene_warnings=[], menu_label_audit=[],
     )
 
 
 _HARD_FAIL_TAGS = (
     "OPTICS-NO-BLACK", "OPTICS-NO-NEON", "OPTICS-NEON-GLOW", "ANTI-SLOP-BLOB",
-    "ANTI-SLOP-CONFETTI", "ANTI-SLOP-WIREFRAME", "AUDIT-VIS-BAD-SVG",
-    "AUDIT-VIS-EMOJI", "AUDIT-VIS-PSEUDO-ICON", "PERF-REFLOW", "A11Y-TAB-DESYNC",
+    "ANTI-SLOP-CONFETTI", "ANTI-SLOP-WIREFRAME", "ANTI-SLOP-GRADIENT-TEXT",
+    "AUDIT-VIS-BAD-SVG", "AUDIT-VIS-EMOJI", "AUDIT-VIS-PSEUDO-ICON",
+    "PERF-REFLOW", "A11Y-TAB-DESYNC", "AUDIT-SEC-ENV-LEAK", "AUDIT-SEC-01",
+    "AUDIT-STUB-PLACEHOLDER",
 )
 
 
@@ -198,31 +212,24 @@ def _score_slop_verdict(
     return slop, verdict
 
 
-def scan_frontend(target_path: Path) -> FrontendInventoryReport:
-    """Scan frontend sources to inventory tokens, colors, fonts, menus, contracts, and AI Slop."""
-    files, total_eligible, truncated = _ss_core.collect_ui_files_scoped(target_path, limit=500)
-    if not files:
-        return _unverified_report(target_path)
+def _collect_bundle_data(files: list[Path], base: Path) -> dict[str, object]:
     tokens, hex_locs, fonts, icon_libs, defects, contracts, nav_links = [], [], [], [], [], [], []
+    chunks, stripped_chunks, oversized_files, loaded_meta, nav_warns = [], [], [], [], []
     oklch_n = ld_n = svg_n = emoji_n = 0
-    chunks: list[str] = []
-    stripped_chunks: list[str] = []
-    oversized_files: list[str] = []
-    base = target_path if target_path.is_dir() else target_path.parent
     for fp in files:
         text = fp.read_text(encoding="utf-8", errors="ignore")
         stripped = _ss_core.strip_comments(text)
         chunks.append(text)
         stripped_chunks.append(stripped)
         rel = fp.relative_to(base).as_posix() if fp.is_relative_to(base) else fp.name
+        loaded_meta.append((fp, rel, text))
         if len(text.splitlines()) > 600:
             oversized_files.append(rel)
         tokens.extend(VAR_DECL_RE.findall(stripped))
         oklch_n += len(OKLCH_RE.findall(stripped))
         ld_n += len(LIGHT_DARK_RE.findall(stripped))
         svg_n += stripped.count("<svg")
-        file_emojis = len(_ss_core.EMOJI_RE.findall(stripped))
-        if file_emojis:
+        if file_emojis := len(_ss_core.EMOJI_RE.findall(stripped)):
             emoji_n += file_emojis
             defects.append(f"{rel}:1 [AUDIT-VIS-EMOJI] {file_emojis} Unicode UI emoji(s); replace with vector SVGs")
         fonts.extend(m.strip() for m in FONT_FAMILY_RE.findall(stripped))
@@ -231,25 +238,46 @@ def scan_frontend(target_path: Path) -> FrontendInventoryReport:
         no_use = re.sub(r"<use\b[^>]*>", "", stripped, flags=re.IGNORECASE)
         nav_links.extend(ROUTE_LINK_RE.findall(no_use) + STATE_ROUTE_RE.findall(no_use))
         _scan_line_defects(fp, rel, text, stripped, hex_locs, defects)
+        nav_warns.extend(f"{rel}:{h.line} [{h.rule_id}] {h.message}" for h in _ss_craft_guards.find_redundant_nav_aria_labels(fp, stripped))
+    return {
+        "tokens": tokens, "hex_locs": hex_locs, "fonts": fonts, "icon_libs": icon_libs,
+        "defects": defects, "contracts": contracts, "nav_links": nav_links,
+        "chunks": chunks, "stripped_chunks": stripped_chunks, "oversized": oversized_files,
+        "loaded_meta": loaded_meta, "nav_warns": nav_warns, "oklch_n": oklch_n,
+        "ld_n": ld_n, "svg_n": svg_n, "emoji_n": emoji_n,
+    }
 
+
+def scan_frontend(target_path: Path) -> FrontendInventoryReport:
+    """Scan frontend sources to inventory tokens, colors, fonts, menus, contracts, and AI Slop."""
+    files, total_eligible, truncated = _ss_core.collect_ui_files_scoped(target_path, limit=500)
+    if not files:
+        return _unverified_report(target_path)
+    base = target_path if target_path.is_dir() else target_path.parent
+    b = _collect_bundle_data(files, base)
+    defects: list[str] = b["defects"]  # type: ignore[assignment]
     if truncated:
         defects.append(f"global:1 [SCOPE-TRUNCATED] audited {len(files)}/{total_eligible} UI files")
-    unique_libs = sorted(set(icon_libs))
+    unique_libs = sorted(set(b["icon_libs"]))  # type: ignore[arg-type]
     if len(unique_libs) > 1:
         defects.append(f"global:1 mixed icon libraries ({', '.join(unique_libs)})")
-    if _ss_core.has_confetti_badge_slop("\n".join(stripped_chunks)):
+    joined_stripped = "\n".join(b["stripped_chunks"])  # type: ignore[arg-type]
+    if _ss_core.has_confetti_badge_slop(joined_stripped):
         defects.append("global:1 [ANTI-SLOP-CONFETTI] >=3 multicolored pill/badge variants; use neutral engraved-pill wells + 6px lum-bead")
-    slop, verdict = _score_slop_verdict(emoji_n, defects, oklch_n, hex_locs)
-    mermaid, proposals = _build_navigation_artifacts(nav_links, oversized_files, "\n".join(stripped_chunks))
+    defects.sort(key=lambda d: 0 if any(tag in d for tag in _HARD_FAIL_TAGS) else 1)
+    slop, verdict = _score_slop_verdict(b["emoji_n"], defects, b["oklch_n"], b["hex_locs"])  # type: ignore[arg-type]
+    mermaid, proposals = _build_navigation_artifacts(b["nav_links"], b["oversized"], joined_stripped)  # type: ignore[arg-type]
+    root_warns, menu_audit = _ss_craft_guards.audit_advisory_nav_and_root(target_path, b["loaded_meta"])  # type: ignore[arg-type]
     return FrontendInventoryReport(
         verdict=verdict, target=str(target_path), files_scanned=len(files),
-        detected_stack=_detect_stack(target_path, "\n".join(chunks)),
-        tokens_defined_count=len(set(tokens)), tokens_sample=sorted(set(tokens))[:30],
-        literal_hex_locations=hex_locs[:30], oklch_count=oklch_n, light_dark_count=ld_n,
-        font_families=sorted(set(fonts))[:15], imported_icon_libs=unique_libs,
-        inline_svg_count=svg_n, emoji_hits=emoji_n, spacing_and_style_defects=defects[:30],
-        component_contracts=sorted(set(contracts))[:25], navigation_targets=sorted(set(nav_links))[:25],
+        detected_stack=_detect_stack(target_path, "\n".join(b["chunks"])),  # type: ignore[arg-type]
+        tokens_defined_count=len(set(b["tokens"])), tokens_sample=sorted(set(b["tokens"]))[:30],  # type: ignore[arg-type]
+        literal_hex_locations=b["hex_locs"][:30], oklch_count=b["oklch_n"], light_dark_count=b["ld_n"],  # type: ignore[index,arg-type]
+        font_families=sorted(set(b["fonts"]))[:15], imported_icon_libs=unique_libs,  # type: ignore[arg-type]
+        inline_svg_count=b["svg_n"], emoji_hits=b["emoji_n"], spacing_and_style_defects=defects[:30],  # type: ignore[arg-type]
+        component_contracts=sorted(set(b["contracts"]))[:25], navigation_targets=sorted(set(b["nav_links"]))[:25],  # type: ignore[arg-type]
         navigation_mermaid=mermaid, before_after_proposals=proposals, ai_slop_score=slop,
+        root_hygiene_warnings=root_warns, menu_label_audit=(menu_audit + b["nav_warns"])[:30],  # type: ignore[operator]
     )
 
 

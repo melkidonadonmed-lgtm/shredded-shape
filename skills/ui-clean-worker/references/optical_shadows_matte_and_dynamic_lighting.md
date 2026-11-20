@@ -8,13 +8,17 @@ Never mix opposite elevations under generic tokens or emit `#000000`. Maintain s
 @import "tailwindcss";
 @custom-variant dark (&:where([data-theme*="dark"], [data-theme="tactile-matte"], .dark, .dark *));
 
-@theme {
+@theme inline {
   --color-bg-well: var(--bg-well);
   --color-bg-canvas: var(--bg-canvas);
   --color-bg-card: var(--bg-card);
   --color-bg-card-lit: var(--bg-card-lit);
   --color-bg-key: var(--bg-key);
   --color-brand-primary: var(--brand-primary);
+  --shadow-elevation-low: var(--shadow-elevation-1);
+  --shadow-elevation-medium: var(--shadow-elevation-2);
+  --shadow-elevation-high: var(--shadow-elevation-3);
+  --shadow-inset-sunken: var(--shadow-well);
   --radius-card: 1rem;
 }
 
@@ -95,4 +99,16 @@ Always derive child container radius from parent radius minus padding (`R_in = m
 }
 ```
 - **Translucent Key Sheen & Grain Stacking:** Keep `--light-key` translucent (`oklch(1 0 0 / 0.55)` -> `transparent`, never opaque white `oklch(1 0 0)`) and place `feTurbulence` `::after` grain on `z-index: -1` inside `position: relative; isolation: isolate;` so texture never obscures keycaps or speckle-cracks glyphs.
-- Ban omnidirectional neon glows, glowing cyan borders, `blur-3xl` background blobs, dashed wireframe borders (`border: 1px dashed`), and multicolored pill classes (`>= 3` pastel badge variants).
+- **Dynamic RCS, Display-P3 Gamut & `<feColorMatrix>` Isolation:** Derive hover/active states via `oklch(from var(--brand-primary) calc(l - 0.08) c h)` and `color-mix(in oklab, ...)` (always wrap `mix-blend-mode` parents with `isolation: isolate`). Optional `@media (color-gamut: p3)` refinements must still obey the `C <= 0.20` (`<= 0.22` cap) optical ceiling. For brand duotone or Protanopia/Deuteranopia accessibility SVG color matrices, keep `<feColorMatrix>` inside a standalone `<filter>` (never combined with `<feGaussianBlur>` in the same `<filter>`).
+- Ban omnidirectional neon glows, glowing cyan borders, `blur-3xl` background blobs, dashed wireframe borders (`border: 1px dashed`), gradient text (`background-clip: text`), decorative side-stripe card borders, and multicolored pill classes.
+
+```html
+<!-- Standalone SVG Color Matrix (Protanopia aid; zero feGaussianBlur in same filter) -->
+<svg hidden aria-hidden="true" width="0" height="0">
+  <defs>
+    <filter id="protanopia-safe">
+      <feColorMatrix type="matrix" values="0.567 0.433 0 0 0  0.558 0.442 0 0 0  0 0.242 0.758 0 0  0 0 0 1 0"/>
+    </filter>
+  </defs>
+</svg>
+```

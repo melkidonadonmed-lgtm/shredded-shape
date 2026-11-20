@@ -6,8 +6,8 @@ compatibility: "Antigravity 2.0 / Claude Code / Gemini CLI with Python 3.12+ (uv
 allowed-tools: "read_file write_file edit_file run_command"
 metadata:
   author: "shredded-shape"
-  version: "1.5.1"
-  updated_at: "2026-11-18"
+  version: "1.6.0"
+  updated_at: "2026-11-19"
   category: "domain-ui-pack"
   tags: "clinical, ehr, pep, .sus-grid, medical-calculators, wcag-aaa, a4-print"
 ---
@@ -28,9 +28,8 @@ Respect strict **Zero-Trust Stage Role Guardrails**: operate **read-only** insid
    - Apply [`references/clinical_polarities_architecture.md`](references/clinical_polarities_architecture.md) and [`references/clinical_a4_tokens_guide.md`](references/clinical_a4_tokens_guide.md): Day Clinic Light (`OKLCH(0.985 0.006 240)`) + Night Shift Dark (`OKLCH(0.165 0.015 245)`, never `#000000`), enforcing `>= 7.0:1` WCAG AAA contrast on dosages, lab alerts, and patient identifiers.
    - Constrain primary chrome accents to `C <= 0.12` (`_ss_core` `clinical` preset; semantic ok/warn `C <= 0.16`), restrict critical red alerts (`15°..40°` hue) to `C <= 0.24`, and ban neon glows or blur blobs.
 
-2. **Phase 2 — Typography, Single-Library SVGs & Clinical Data Clarity:**
-   - Enforce `font-variant-numeric: tabular-nums;` on all lab values, timestamps, and doses; set `text-rendering: auto; font-optical-sizing: auto;` on `body` (protects form INP latency) and `optimizeLegibility` strictly on `h1..h3`.
-   - Use one verified SVG library (`Material Symbols` or `Lucide`, `24x24` crisp vectors) for vitals/alerts; zero Unicode emojis or amateur circle-cloud SVGs.
+2. **Phase 2 — Typography, 3-Layer Clinical Nav & SVGs:**
+   - Enforce `font-variant-numeric: tabular-nums;` on lab values/doses, `text-rendering: auto; font-optical-sizing: auto;` on `body` (`optimizeLegibility` strictly on `h1..h3`), 3-layer clinical nav (Global Rail/Bottom Bar, In-Page ToC, Silent CSS Breadcrumbs `::before` + GPU `.skip-link`, unique `<nav aria-label>`), and ONE `24x24` SVG set (zero emojis, side-stripes, gradient text, or mystery icon-only nav).
 
 3. **Phase 3 — A4 `.sus-grid` Vector Print Projection (`@media print`):**
    - Implement `@page { size: A4; margin: 12mm; }` with `.sus-grid` hairline vector rules (`0.25mm`), forced Light black-on-white polarity (`color-adjust: exact`), zero `box-shadow`/`backdrop-filter` in print, and `break-inside: avoid;` on prescription/signature blocks.

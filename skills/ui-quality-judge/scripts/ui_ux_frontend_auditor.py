@@ -64,8 +64,8 @@ ELEVATION_TOKENS = (
     "--elevation-1", "--elevation-2", "--elevation-3", "--elevation-low",
     "--elevation-medium", "--elevation-high", "--elevation-pressed",
     "--elevation-pressed-inset", "tactile-low", "tactile-md", "tactile-lg",
-    "tactile-pressed", "shadow-elevation-low", "shadow-elevation-medium",
-    "shadow-elevation-high", "shadow-lg", "shadow-xl", "shadow-2xl",
+    "tactile-pressed", "shadow-elevation-1", "shadow-elevation-2", "shadow-elevation-3",
+    "shadow-elevation-low", "shadow-elevation-medium", "shadow-elevation-high", "shadow-lg", "shadow-xl", "shadow-2xl",
 )
 
 

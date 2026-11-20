@@ -59,14 +59,14 @@ CHROME_DEVTOOLS_EVALUATE_SCRIPT = """() => {
     if (!isVis(navEl)) return;
     const gapPx = getPx(navEl, 'gap') || getPx(navEl, 'columnGap');
     const items = Array.from(navEl.querySelectorAll('button, a, [role="tab"]')).filter(isVis);
-    if (gapPx > 0 && gapPx < 6) crampedMenus.push(`nav#${navEl.id || idx}: gap=${gapPx}px (< 6px)`);
+    if (gapPx > 0 && gapPx < 8) crampedMenus.push(`nav#${navEl.id || idx}: gap=${gapPx}px (< 8px)`);
     if (items.length > 6) crampedMenus.push(`nav#${navEl.id || idx}: ${items.length} stacked items (> 6)`);
     items.forEach((btn) => {
       const fz = getPx(btn, 'fontSize');
       const r = btn.getBoundingClientRect();
       if (fz < 13) crampedMenus.push(`${btn.tagName.toLowerCase()}#${btn.id || btn.textContent.trim().slice(0, 18)}: fontSize=${fz}px (< 13px)`);
       if (btn.scrollWidth > btn.clientWidth + 2) crampedMenus.push(`${btn.tagName.toLowerCase()}#${btn.id || btn.textContent.trim().slice(0, 18)}: overflow`);
-      if (r.height < 40) crampedMenus.push(`${btn.tagName.toLowerCase()}#${btn.id || btn.textContent.trim().slice(0, 18)}: height=${Math.round(r.height)}px (< 40px)`);
+      if (r.height < 44) crampedMenus.push(`${btn.tagName.toLowerCase()}#${btn.id || btn.textContent.trim().slice(0, 18)}: height=${Math.round(r.height)}px (< 44px)`);
     });
   });
 
@@ -193,7 +193,7 @@ def probe_live_url_metadata(live_url: str, timeout_sec: float = 5.0) -> dict[str
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         return {"reachable": False, "error": "URL must start with http:// or https://"}
     try:
-        req = urllib.request.Request(live_url, headers={"User-Agent": "ComplexZero-Probe/1.4.0"})
+        req = urllib.request.Request(live_url, headers={"User-Agent": "ComplexZero-Probe/1.6.0"})
         with urllib.request.urlopen(req, timeout=timeout_sec) as resp:  # nosec B310
             html = resp.read().decode("utf-8", errors="replace")
             status_code = resp.status

@@ -32,7 +32,7 @@ SpatialArchetype = Literal[
     "workbench_split_view", "bento_12_col", "command_center_grid",
     "editorial_65ch", "spatial_hud_dock", "vector_a4_print",
 ]
-ExecutionMode = Literal["greenfield", "refactor"]
+ExecutionMode = Literal["greenfield", "refactor", "planner_directed"]
 READ_ONLY_OWNERS = frozenset({"ui-analyst", "ui-planner", "ui-judge"})
 STYLE_PRESETS = _ss_core.STYLE_PRESETS
 
@@ -123,11 +123,12 @@ def _assert_no_same_wave_file_collision(nodes: list[DAGTaskNode], waves: dict[st
 
 
 def _detect_mode_and_tier(
-    scope_target: Path, mode: Literal["auto", "greenfield", "refactor"]
+    scope_target: Path, mode: Literal["auto", "greenfield", "refactor", "planner_directed"]
 ) -> tuple[ExecutionMode, Literal["tier_1_static", "tier_2_spa", "tier_3_fullstack_pwa"]]:
     is_dir = scope_target.is_dir()
-    has_pkg = is_dir and (scope_target / "package.json").is_file()
-    has_next = is_dir and any((scope_target / f"next.config.{ext}").is_file() for ext in ("js", "mjs", "ts"))
+    pkg_root = scope_target.parent if (is_dir and scope_target.name.lower() == "src" and (scope_target.parent / "package.json").is_file()) else scope_target
+    has_pkg = is_dir and (pkg_root / "package.json").is_file()
+    has_next = is_dir and any((pkg_root / f"next.config.{ext}").is_file() for ext in ("js", "mjs", "ts", "cjs"))
     tier: Literal["tier_1_static", "tier_2_spa", "tier_3_fullstack_pwa"] = (
         "tier_3_fullstack_pwa" if has_next else ("tier_2_spa" if has_pkg else "tier_1_static")
     )
@@ -135,7 +136,7 @@ def _detect_mode_and_tier(
         return mode, tier
     if scope_target.is_file() and scope_target.suffix.lower() in _ss_core.UI_EXTS:
         return "refactor", tier
-    if is_dir and (has_pkg or (scope_target / "index.html").is_file() or any(
+    if is_dir and (has_pkg or (scope_target / "index.html").is_file() or bool(_ss_core.collect_ui_files(scope_target, limit=1)) or any(
         (scope_target / sub).is_dir() and _ss_core.collect_ui_files(scope_target / sub, limit=1)
         for sub in ("src", "app", "pages", "components", "assets")
     )):
@@ -143,44 +144,46 @@ def _detect_mode_and_tier(
     return "greenfield", tier
 
 
-def compile_default_dag(
-    scope_target: Path,
-    style: str = "tactile",
-    hue: int = 235,
-    mode: Literal["auto", "greenfield", "refactor"] = "auto",
-    spatial: SpatialArchetype | None = None,
-) -> UIExecutionDAG:
-    """Compile a canonical 3-stage (greenfield) or 4-stage (refactor) UIExecutionDAG."""
-    canon_style: StyleArchetype = _ss_core.normalize_style_archetype(style)  # type: ignore[assignment]
-    resolved_mode, tier = _detect_mode_and_tier(scope_target, mode)
-    resolved_spatial: SpatialArchetype = spatial or _ss_core.STYLE_SPATIAL_DEFAULTS[canon_style]  # type: ignore[assignment]
-    stack_map = {
-        "tier_3_fullstack_pwa": ["Next.js 15+ App Router", "React 19", "TypeScript", "Tailwind v4 @theme", "OKLCH"],
-        "tier_2_spa": ["React 19", "TypeScript", "Tailwind v4 @theme", "OKLCH"],
-        "tier_1_static": ["HTML5", "CSS @layer OKLCH", "Vanilla ES"],
-    }
-    worker_files_map = {
-        "tier_3_fullstack_pwa": ["DESIGN.md", "src/app/globals.css", "src/app/layout.tsx", "src/app/page.tsx"],
-        "tier_2_spa": ["DESIGN.md", "src/styles/tokens.css", "src/components/AppShell.tsx"],
-        "tier_1_static": ["DESIGN.md", "index.html", "styles/tokens.css"],
-    }
-    worker_files = worker_files_map[tier]
-    nodes: list[DAGTaskNode] = []
+def _build_discovery_nodes(target_lbl: str, resolved_mode: ExecutionMode) -> tuple[list[DAGTaskNode], list[str]]:
     if resolved_mode == "refactor":
-        nodes.append(DAGTaskNode(
+        return [DAGTaskNode(
             step_id="step_00_forensic_inventory", title="Run Forensic Token, DevTools/REA and Anti-Slop Inventory",
             owner_agent="ui-analyst", reasoning_pattern="CoT", active_rules_count=4,
-            read_targets=[str(scope_target.name or ".")], owned_files=[], dependencies=[],
+            read_targets=[target_lbl], owned_files=[], dependencies=[],
             acceptance_gate="ai_slop_score computed + 7-section CLAREZA plan + As-Is/To-Be Mermaid",
             fallback_branch="fallback_static_ast_inventory",
-        ))
+        )], ["step_00_forensic_inventory"]
+    if resolved_mode == "planner_directed":
+        return [
+            DAGTaskNode(
+                step_id="step_00a_intent_and_audit_brief", title="Diagnose Intent, Triage Ambiguity and Scope Discovery Brief",
+                owner_agent="ui-planner", reasoning_pattern="ToT", active_rules_count=4,
+                read_targets=[target_lbl], owned_files=[], dependencies=[],
+                acceptance_gate="Intent locked + targeted ScopedAuditRequest handed off (max 1 discovery hop)",
+                fallback_branch="fallback_baseline_audit_brief",
+            ),
+            DAGTaskNode(
+                step_id="step_00b_directed_forensic_probe", title="Execute Scoped Forensic Probe on Planner Targets",
+                owner_agent="ui-analyst", reasoning_pattern="CoT", active_rules_count=4,
+                read_targets=[target_lbl], owned_files=[], dependencies=["step_00a_intent_and_audit_brief"],
+                acceptance_gate="CLAREZA delta + causal Friction X -> Consequence Y emitted",
+                fallback_branch="fallback_static_ast_inventory",
+            ),
+        ], ["step_00b_directed_forensic_probe"]
+    return [], []
+
+
+def _build_dag_nodes(
+    scope_target: Path, resolved_mode: ExecutionMode, worker_files: list[str]
+) -> list[DAGTaskNode]:
+    target_lbl = str(scope_target.name or ".")
+    nodes, plan_deps = _build_discovery_nodes(target_lbl, resolved_mode)
     nodes.extend([
         DAGTaskNode(
             step_id="step_01_tokens_design_contract", title="Emit 5-Plane OKLCH Tokens, Spatial Archetype and 8-Section DESIGN.md Blueprint",
             owner_agent="ui-planner", reasoning_pattern="ToT", active_rules_count=4,
-            read_targets=["README.md", str(scope_target.name or ".")], owned_files=[],
-            dependencies=["step_00_forensic_inventory"] if resolved_mode == "refactor" else [],
-            acceptance_gate="OKLCH 60-30-10 C<=0.20 + light-dark + style & spatial archetype locked",
+            read_targets=["README.md", target_lbl], owned_files=[], dependencies=plan_deps,
+            acceptance_gate="OKLCH 60-30-10 C<=0.20 + light-dark + style & spatial archetype locked + Phase 0 Scope Lock",
             fallback_branch="fallback_standard_neutral_tokens",
         ),
         DAGTaskNode(
@@ -193,15 +196,43 @@ def compile_default_dag(
         DAGTaskNode(
             step_id="step_03_wcag_actor_critic_judge", title="Run Read-Only WCAG 2.2 OKLCH, 4-Pillar and 6-Dimension Judge",
             owner_agent="ui-judge", reasoning_pattern="Self-Refine", active_rules_count=4,
-            read_targets=worker_files, owned_files=[], dependencies=["step_02_shell_and_route_impl"],
+            read_targets=[target_lbl, *worker_files], owned_files=[], dependencies=["step_02_shell_and_route_impl"],
             acceptance_gate="verdict == PASSED, contrast >= 4.5:1, zero blobs/neon/bad-SVGs, DOM == Tab order",
             fallback_branch="trigger_worker_self_refine_max_3",
         ),
     ])
+    return nodes
+
+
+def compile_default_dag(
+    scope_target: Path,
+    style: str = "tactile",
+    hue: int = 235,
+    mode: Literal["auto", "greenfield", "refactor", "planner_directed"] = "auto",
+    spatial: SpatialArchetype | None = None,
+) -> UIExecutionDAG:
+    """Compile a canonical 3-stage (greenfield), 4-stage (refactor), or 5-stage (planner_directed) UIExecutionDAG."""
+    canon_style: StyleArchetype = _ss_core.normalize_style_archetype(style)  # type: ignore[assignment]
+    if canon_style not in STYLE_PRESETS:
+        raise ValueError(f"Unsupported style archetype: {style}")
+    resolved_mode, tier = _detect_mode_and_tier(scope_target, mode)
+    resolved_spatial: SpatialArchetype = spatial or _ss_core.STYLE_SPATIAL_DEFAULTS[canon_style]  # type: ignore[assignment]
+    stack_map = {
+        "tier_3_fullstack_pwa": ["Next.js 15+ App Router", "React 19", "TypeScript", "Tailwind v4 @theme", "OKLCH"],
+        "tier_2_spa": ["React 19", "TypeScript", "Tailwind v4 @theme", "OKLCH"],
+        "tier_1_static": ["HTML5", "CSS @layer OKLCH", "Vanilla ES"],
+    }
+    worker_files_map = {
+        "tier_3_fullstack_pwa": ["DESIGN.md", "src/app/globals.css", "src/app/layout.tsx", "src/app/page.tsx"],
+        "tier_2_spa": ["DESIGN.md", "src/styles/tokens.css", "src/components/AppShell.tsx"],
+        "tier_1_static": ["DESIGN.md", "index.html", "styles/tokens.css"],
+    }
+    nodes = _build_dag_nodes(scope_target, resolved_mode, worker_files_map[tier])
+    style_tokens = {**STYLE_PRESETS[canon_style], "spatial": resolved_spatial}
     return UIExecutionDAG(
         project_name=scope_target.name or "ui-project", style_archetype=canon_style,
         spatial_archetype=resolved_spatial, execution_mode=resolved_mode, complexity_tier=tier,
-        brand_oklch_hue=hue, recommended_stack=stack_map[tier], style_tokens=STYLE_PRESETS[canon_style], nodes=nodes,
+        brand_oklch_hue=hue, recommended_stack=stack_map[tier], style_tokens=style_tokens, nodes=nodes,
     )
 
 
@@ -210,7 +241,9 @@ def _run_self_test() -> int:
     assert dag_ref.style_archetype == "hi-tech" and len(dag_ref.nodes) == 4 and all(n.active_rules_count <= 5 for n in dag_ref.nodes)
     dag_gf = compile_default_dag(Path("nonexistent_greenfield_dir"), style="tactile", hue=235, mode="greenfield")
     assert dag_gf.execution_mode == "greenfield" and len(dag_gf.nodes) == 3
-    print(json.dumps({"self_test": "UI_DAG_COMPILER_OK", "refactor_nodes": len(dag_ref.nodes), "greenfield_nodes": len(dag_gf.nodes)}, ensure_ascii=False))
+    dag_pd = compile_default_dag(Path("."), style="tactile", hue=235, mode="planner_directed")
+    assert dag_pd.execution_mode == "planner_directed" and len(dag_pd.nodes) == 5
+    print(json.dumps({"self_test": "UI_DAG_COMPILER_OK", "refactor_nodes": len(dag_ref.nodes), "greenfield_nodes": len(dag_gf.nodes), "planner_directed_nodes": len(dag_pd.nodes)}, ensure_ascii=False))
     return 0
 
 
@@ -221,7 +254,7 @@ def main() -> int:
     parser.add_argument("--scope", dest="scope_flag", default=None, help="Alias --scope workspace")
     parser.add_argument("--style", default="tactile", choices=sorted([*STYLE_PRESETS.keys(), *_ss_core.STYLE_ALIASES.keys()]))
     parser.add_argument("--hue", type=int, default=235)
-    parser.add_argument("--mode", default="auto", choices=["auto", "greenfield", "refactor"])
+    parser.add_argument("--mode", default="auto", choices=["auto", "greenfield", "refactor", "planner_directed"])
     parser.add_argument("--spatial", default=None, choices=list(get_args(SpatialArchetype)))
     parser.add_argument("--out", type=str, default="", help="Optional output file path for compiled DAG JSON")
     parser.add_argument("--json", action="store_true")

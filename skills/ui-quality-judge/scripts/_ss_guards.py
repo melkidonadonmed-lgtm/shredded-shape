@@ -3,7 +3,7 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""Shared static AST/CSS/JSX structural guards for shredded-shape v1.5.0."""
+"""Shared static AST/CSS/JSX structural guards for shredded-shape v1.6.0."""
 
 from __future__ import annotations
 

@@ -27,10 +27,10 @@ for _cand in (*(p / "scripts" for p in _HERE.parents if (p / "pyproject.toml").i
         break
 
 import _ss_core
+import _ss_craft_guards
 import _ss_guards
 
 BASE64_BLOAT_RE = re.compile(r"data:image/[a-zA-Z0-9+.-]+;base64,[A-Za-z0-9+/=]{68000,}")
-UNSAFE_HTML_RE = re.compile(r"dangerouslySetInnerHTML\s*=")
 OUTLINE_NONE_RE = re.compile(r"outline\s*:\s*(?:none|0)\b")
 COLOR_DECL_RE = re.compile(r"(?<![a-zA-Z0-9_-])color\s*:\s*(#[0-9a-fA-F]{3,6})\b", re.IGNORECASE)
 BG_DECL_RE = re.compile(r"background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,6})\b", re.IGNORECASE)
@@ -171,7 +171,7 @@ def _audit_single_theme_tokens(
                 remediation="Increase contrast between --ink-on-key and --bg-key.",
             ))
     if (ink_brand := tokens.get("--ink-on-brand") or tokens.get("--text-on-brand")) and (brand_bg := tokens.get("--brand-fill") or tokens.get("--brand-primary")):
-        cr_brand = calculate_oklch_contrast(ink_brand[0], brand_bg[0], ink_brand[1], brand_bg[2], brand_bg[1], brand_bg[2])
+        cr_brand = calculate_oklch_contrast(ink_brand[0], brand_bg[0], ink_brand[1], ink_brand[2], brand_bg[1], brand_bg[2])
         if cr_brand < 4.5:
             findings.append(JudgeFinding(
                 rule_id="WCAG-1.4.3-OKLCH", severity="CRITICAL", epistemic_type="[OBSERVED FACT]",
@@ -224,6 +224,21 @@ def _check_sheen_and_brand_fill(stripped: str, rel: str, maps: dict[str, dict[st
         ))
 
 
+def _check_guard_findings(
+    target_fp: Path, raw: str, stripped: str, masked: str, rel: str, findings: list[JudgeFinding]
+) -> None:
+    for hit in _ss_craft_guards.run_craft_and_sec_guards(target_fp, raw, stripped, masked, profile="judge"):
+        findings.append(JudgeFinding(rule_id=hit.rule_id, severity=hit.severity, epistemic_type="[OBSERVED FACT]", file=f"{rel}:{hit.line}", message=hit.message, remediation=hit.remediation))
+    for ln, snippet, rem in _ss_guards.find_print_shadow_leaks(target_fp, raw):
+        findings.append(JudgeFinding(rule_id="CLINICAL-PRINT-SHADOW", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:{ln}", message=f"Non-none box-shadow inside @media print ({snippet})", remediation=rem))
+    for ln, snippet, rem in _ss_guards.find_unsemantic_div_clicks(target_fp, raw):
+        findings.append(JudgeFinding(rule_id="AUDIT-A11Y-CLICK-DIV", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:{ln}", message=f"Clickable <div onClick> without semantic button/role ({snippet[:48]})", remediation=rem))
+    for ln, snippet, rem in _ss_guards.find_pseudo_icon_hits(target_fp, raw):
+        findings.append(JudgeFinding(rule_id="AUDIT-VIS-PSEUDO-ICON", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:{ln}", message=f"Unicode/ASCII pseudo-icon '{snippet}' detected; use crisp SVG", remediation=rem))
+    for ln, snippet, rem in _ss_guards.find_target_size_overrides(target_fp, raw):
+        findings.append(JudgeFinding(rule_id="FITTS-TARGET-SIZE", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:{ln}", message=f"Interactive hit target < 40px ({snippet})", remediation=rem))
+
+
 def _check_static_rules(raw: str, stripped: str, rel: str, bundle_stripped: str, findings: list[JudgeFinding], fp: Path | None = None) -> None:
     target_fp = fp if fp is not None else Path(rel)
     masked = _ss_guards.strip_print_sheet_contexts(target_fp, stripped)
@@ -231,7 +246,7 @@ def _check_static_rules(raw: str, stripped: str, rel: str, bundle_stripped: str,
         (_ss_core.PURE_BLACK_RE, "OPTICS-NO-BLACK", "CRITICAL", "[OBSERVED FACT]", "Pure #000000 black violates Dark Mode elevation", "Replace #000000 with oklch(0.16 0.02 258)."),
         (_ss_core.EMOJI_RE, "AUDIT-VIS-EMOJI", "CRITICAL", "[OBSERVED FACT]", "Unicode UI emoji detected; use crisp vector SVGs", "Replace emoji with 16/20/24px Lucide/Material SVG."),
         (BASE64_BLOAT_RE, "AUDIT-VIS-BLOAT", "CRITICAL", "[OBSERVED FACT]", "Base64 inline image exceeds 50KB budget", "Move image to external asset file or vector SVG."),
-        (_ss_core.ROW_REVERSE_RE, "WCAG-1.3.2", "CRITICAL", "[OBSERVED FACT]", "row-reverse or CSS order breaks DOM == Tab focus sequence", "Reorder DOM nodes directly instead of visual CSS reversal."),
+        (_ss_core.ROW_REVERSE_RE, "WCAG-1.3.2", "CRITICAL", "[OBSERVED FACT]", "row-reverse, CSS order, or grid-auto-flow: dense breaks DOM == Tab focus sequence", "Reorder DOM nodes directly instead of visual CSS reversal."),
         (_ss_core.FLAT_SHADOW_RE, "LOCK-02-SHADOWS", "WARNING", "[OBSERVED FACT]", "Single-pass rgba(0,0,0) shadow detected", "Use 3-layer optical shadow (Umbra + negative Penumbra + Catch-Light)."),
         (_ss_core.NEON_GLOW_RE, "OPTICS-NEON-GLOW", "CRITICAL", "[OBSERVED FACT]", "Omnidirectional neon shadow/glow violates optical discipline", "Use subtle directional dark halo (spread < 0, alpha <= 0.16)."),
         (_ss_core.SLOP_BLOB_RE, "ANTI-SLOP-BLOB", "CRITICAL", "[OBSERVED FACT]", "Decorative blur blob, organic bloop, or gooey SVG detected", "Remove decorative blur blobs; use sharp geometry and 3-layer elevation."),
@@ -244,14 +259,7 @@ def _check_static_rules(raw: str, stripped: str, rel: str, bundle_stripped: str,
     for pattern, rule_id, severity, ep_type, msg, rem in rules:
         if pattern.search(masked):
             findings.append(JudgeFinding(rule_id=rule_id, severity=severity, epistemic_type=ep_type, file=f"{rel}:{_first_line(masked, pattern)}", message=msg, remediation=rem))
-    for ln, snippet, rem in _ss_guards.find_print_shadow_leaks(target_fp, raw):
-        findings.append(JudgeFinding(rule_id="CLINICAL-PRINT-SHADOW", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:{ln}", message=f"Non-none box-shadow inside @media print ({snippet})", remediation=rem))
-    for ln, snippet, rem in _ss_guards.find_unsemantic_div_clicks(target_fp, raw):
-        findings.append(JudgeFinding(rule_id="AUDIT-A11Y-CLICK-DIV", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:{ln}", message=f"Clickable <div onClick> without semantic button/role ({snippet[:48]})", remediation=rem))
-    for ln, snippet, rem in _ss_guards.find_pseudo_icon_hits(target_fp, raw):
-        findings.append(JudgeFinding(rule_id="AUDIT-VIS-PSEUDO-ICON", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:{ln}", message=f"Unicode/ASCII pseudo-icon '{snippet}' detected; use crisp SVG", remediation=rem))
-    for ln, snippet, rem in _ss_guards.find_target_size_overrides(target_fp, raw):
-        findings.append(JudgeFinding(rule_id="FITTS-TARGET-SIZE", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:{ln}", message=f"Interactive hit target < 40px ({snippet})", remediation=rem))
+    _check_guard_findings(target_fp, raw, stripped, masked, rel, findings)
     if len(raw.splitlines()) > 600:
         findings.append(JudgeFinding(rule_id="CAP-600L", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:601", message=f"File exceeds 600-line ceiling ({len(raw.splitlines())} lines)", remediation="Split module by domain concern (<= 600 lines/file)."))
     if re.search(r"//.*?\bidle\b.*?\bloading\b.*?\berror\b", raw, re.IGNORECASE):
@@ -262,9 +270,6 @@ def _check_static_rules(raw: str, stripped: str, rel: str, bundle_stripped: str,
         findings.append(JudgeFinding(rule_id="AUDIT-VIS-BAD-SVG", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:1", message=msg, remediation="Use verified Lucide/Material 24x24 vector SVG paths."))
     if _ss_core.has_confetti_badge_slop(masked):
         findings.append(JudgeFinding(rule_id="ANTI-SLOP-CONFETTI", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:1", message=">=3 multicolored pill/badge variants create AI confetti slop", remediation="Use neutral recessed .engraved-pill wells paired with a 6px .lum-bead status dot."))
-    is_fouc = "localStorage.getItem" in stripped and "setAttribute('data-theme'" in stripped.replace('"', "'")
-    if UNSAFE_HTML_RE.search(stripped) and "DOMPurify" not in stripped and not is_fouc:
-        findings.append(JudgeFinding(rule_id="AUDIT-SEC-01", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:{_first_line(stripped, UNSAFE_HTML_RE)}", message="dangerouslySetInnerHTML used without DOMPurify sanitization", remediation="Wrap HTML payload with DOMPurify.sanitize()."))
     if OUTLINE_NONE_RE.search(masked) and ":focus-visible" not in bundle_stripped:
         findings.append(JudgeFinding(rule_id="WCAG-2.4.7", severity="CRITICAL", epistemic_type="[OBSERVED FACT]", file=f"{rel}:{_first_line(masked, OUTLINE_NONE_RE)}", message="outline removed without :focus-visible replacement", remediation="Provide explicit :focus-visible outline (>= 2px solid)."))
     if ("transition:" in masked or "animation:" in masked) and "prefers-reduced-motion" not in bundle_stripped:
@@ -379,11 +384,32 @@ def _run_self_test() -> int:
     return 0
 
 
+def _dispatch_non_code_axis(
+    target: Path, axis: str, workspace_raw: str, emit_json: bool
+) -> int | None:
+    resolved_axis = axis
+    if resolved_axis == "auto" and target.is_file() and target.suffix.lower() in {".md", ".json"}:
+        low = target.name.lower()
+        resolved_axis = "technical_audit" if ("clareza" in low or "inventory" in low or "audit" in low) else "execution_plan"
+    if resolved_axis not in {"execution_plan", "technical_audit"}:
+        return None
+    if str(_HERE) not in sys.path:
+        sys.path.insert(0, str(_HERE))
+    import artifact_axis_judge
+
+    ws = Path(workspace_raw).expanduser().resolve() if workspace_raw.strip() else None
+    rep = artifact_axis_judge.evaluate_execution_plan(target) if resolved_axis == "execution_plan" else artifact_axis_judge.evaluate_technical_audit(target, workspace=ws)
+    print(rep.model_dump_json(indent=2) if emit_json else f"{rep.verdict} axis={rep.axis} checks={rep.checks_passed} findings={len(rep.findings)}")
+    return 0 if rep.verdict == "PASSED" else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Read-Only WCAG 2.2 & OKLab UI Quality Judge")
     parser.add_argument("target", nargs="?", default=None, help="Target frontend file or directory")
     parser.add_argument("--target", dest="target_flag", default=None, help="Explicit --target path")
     parser.add_argument("--wcag", default="AA", choices=["AA", "AAA"])
+    parser.add_argument("--axis", default="auto", choices=["auto", "ui_code", "execution_plan", "technical_audit"])
+    parser.add_argument("--workspace", default="", help="Optional workspace root for Axis-3 file:line verification")
     parser.add_argument("--composite", action="store_true", help="Run all 3 Stage-3 engines in a single pass")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--self-test", action="store_true")
@@ -391,6 +417,8 @@ def main() -> int:
     if args.self_test:
         return _run_self_test()
     target = _ss_core.resolve_cli_target(args.target, args.target_flag)
+    if (axis_exit := _dispatch_non_code_axis(target, args.axis, args.workspace, args.json)) is not None:
+        return axis_exit
     if args.composite:
         payload = _run_composite(target, args.wcag)
         print(json.dumps(payload, indent=2, ensure_ascii=False))

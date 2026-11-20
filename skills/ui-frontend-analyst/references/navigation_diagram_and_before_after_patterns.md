@@ -1,38 +1,33 @@
-# 7-Section CLAREZA Deliverable & Navigation Before/After Patterns
+# Intent-First Audit, Root/Canvas Checklist & 7-Section CLAREZA Patterns
 
-Every Stage 0 audit emits a structured **7-Section CLAREZA** report (`As-Is` diagnosis + `To-Be` plan) with actionable handoff inputs for `ui-brand-ux-planner`.
+Every Stage 0 audit begins with `[CoT-0]` Intent-First locking and emits a causal **7-Section CLAREZA** report (`As-Is` diagnosis + `To-Be` plan) for `ui-brand-ux-planner`.
 
-## 1. Mandatory 7-Section CLAREZA Output Structure
-1. **Token & Polarity Inventory:** Observed colors, `oklch()` / `light-dark()` ratio, detected `#000000` / `C > 0.22` neon breaches, `color-mix(in oklch)` gamut warnings, and 5-Plane surface gaps.
-2. **Typography & Stitch Spacing Matrix:** Loaded fonts, `text-rendering` placement (`auto` body vs `optimizeLegibility` headings), `clamp()` / `65ch` discipline, and off-grid spacing literals.
-3. **12-Vector Anti-AI-Slop & Icon Craft Ledger:** Computed `ai_slop_score`, blur blobs, confetti badges, dashed wireframes, reflow animations, tab-order breaks, amateur `<svg>` clouds, mixed icon packages, and files exceeding `600` lines.
-4. **Chrome DevTools & CWV Telemetry Probe:** `CSS Overview` findings, `Issues`, `Performance Monitor` DOM/heap counts, INP (`ms`), LCP (`s`), CLS, horizontal overflow, and `dashedWireframeCount`.
-5. **Navigation Friction Matrix:** Sprawl (`> 6` primary tabs or `> 3` `<nav>` landmarks), orphan modals, cramped buttons (`< 44px` / `< 48px` coarse), unguarded state transitions, and >3-click dead ends.
-6. **`As-Is` & `To-Be` Mermaid Navigation Flows:** Visual comparison of fragmented routes vs unified Single-DOM adaptive postures (`Compact` / `Medium` / `Expanded`). Always quote Mermaid labels containing parentheses or brackets (`id["Label (Info)"]`).
-7. **Prioritized Before/After Refactor Matrix:** Concrete `[Component / Metric | Current (As-Is) | Proposed Target (To-Be) | Owner Skill]` rows.
+## 1. `[CoT-0]` Intent-First Modes, Root Hygiene & Stack Diagnosis
+- **Invocation Modes:** `pre-plan` (audit before architecture), `planner-directed` (1-hop `ScopedAuditRequest` from `ui-planner` returning `CLAREZA_DELTA`), or `plan-brief` (compile structured evidence to seed a plan). If an interactive prompt omits both target and goal, ask; on concrete `<target>` invocations, infer `intent: "baseline_forensic_audit"` (`intent_inferred: true`).
+- **Advisory Root & Topology Check (`root_hygiene_warnings`):** Inspect `package.json` scripts (`dev`, `build`, `lint`, `test`), single lockfile (`package-lock.json` vs `pnpm-lock.yaml` vs `yarn.lock` vs `bun.lock*`), `tsconfig.json` (`strict: true`, JSONC/`references`/`extends` aware), governance docs (`README.md`, `.context/`), `.gitignore`, folder tier (`1` flat CSS / `2` Feature SPA / `3` App Router `(group)/` + `_components/`), and mixed frontend stacks (e.g., `reactflow` + `@xyflow/react`, `bootstrap` + `tailwindcss`, v3 `tailwind.config.*` + v4 `@import`). Defer backend parity to `system-project-auditor`.
 
-## 2. Adaptive Single-DOM Navigation Limits & Canonical Mermaid Flows
+## 2. Mandatory 7-Section CLAREZA Output Structure & Epistemic Tags
+Tag every finding `[OBSERVED FACT]`, `[TECHNICAL INFERENCE]`, or `[GAP]`, linking **`Friction X -> Consequence Y`**:
+1. **Token, Warning & Polarity Inventory:** `oklch()`/`light-dark()` coverage, 3-layer token assembly, Light vs. Dark shadows, warning/alert contrast, `#000000`/`C > 0.22` breaches, and text-on-token legibility.
+2. **Typography & Spacing Matrix:** Loaded fonts per page, `text-rendering` (`auto` body vs `optimizeLegibility` headings), `clamp()`/`60-65ch`, `flow-root`, and macro Grid vs `@container` micro coupling.
+3. **Anti-AI-Slop, AppSec & Icon Craft Ledger:** `ai_slop_score`, blobs/confetti/wireframes/gradient-text/side-stripes, `AUDIT-SEC-ENV-LEAK` (redacted `NEXT_PUBLIC_*`/`VITE_*` secrets), `AUDIT-SEC-01` (HTML/`eval` sinks), `AUDIT-STUB-PLACEHOLDER`, mixed icon packs, and `> 600`-line splits.
+4. **Chrome DevTools & CWV Telemetry Probe:** `CSS Overview`, `Issues`, `Performance Monitor` DOM/heap counts, `wrappedNavItems`, `mysteryIconOnlyNavCount`, `gradientTextCount`, `skipLinkPresent`, INP (`<= 200ms`), LCP (`<= 2.5s`), CLS.
+5. **Menu Label Audit & Canvas Capability Matrix:** Count `<nav>`/`<ol>`/`role="tab"` items, decode label lengths (`<= 26` chars; flag raw `/` in HTML breadcrumbs vs CSS `::before`), and audit infinite canvas features (drag, resize, vector edges/arrows, pin, sticky notes, `useReactFlow().setCenter()`, Windows `\`->`/` watcher normalization).
+6. **`As-Is` & `To-Be` Mermaid Navigation Flows:** Visual comparison of fragmented routes vs Single-DOM adaptive postures (`Compact` / `Medium` / `Expanded`) + GPU `.skip-link`. Always quote Mermaid labels containing parentheses/brackets (`id["Label (Info)"]`).
+7. **Causal Before/After Matrix:** `[Component / Metric | Friction X (As-Is) | Consequence Y | Target (To-Be) | Owner Skill]`.
 
+## 3. Menu Ergonomics & Interactive Canvas Audit Reference
 | Dimension | Failing `As-Is` Pattern (`[FAIL]`) | Clean `To-Be` Pattern (`[PASS]`) |
 | :--- | :--- | :--- |
-| **Landmarks & Slots** | `> 3 <nav>` wrappers or `> 6` squeezed top tabs (`overflow-x: hidden`). | `<= 3 <nav>` containers (`<= 6` items each) + horizontal `scroll-snap` tabs with `mask-image` edge fade. |
-| **Mobile Posture** | Compressed desktop sidebar overflowing `360px` viewports. | Adaptive Single-DOM: Bottom Bar (`env(safe-area-inset-bottom)`) `< 600px`, Rail `600–839px`, Collapsible Sidebar `>= 840px`. |
-| **Expandables** | Instant JS toggle losing keyboard focus or animating `height`/`width`. | `0fr -> 1fr` grid accordions, native `<details>`, and `popover="auto"` with `@starting-style` + `allow-discrete`. |
+| **Landmarks & Skip** | `> 3 <nav>`, repeated `"navigation"` in `aria-label`, no skip link, raw `/` in HTML. | `<= 3 <nav>` (`<= 6` concise items), unique `aria-label`, GPU `.skip-link`, `<ol role="list">` + CSS `::before`. |
+| **Labels & Mobile** | Unwrapped `> 26`-char desktop menu labels, compressed sidebar at `360px`, mystery icon rails. | Concise 1-word mobile labels (`4–8` chars), `48x48px` Bottom Bar `< 600px`, tooltip on collapsed rails. |
+| **Canvas Controls** | Static nodes lacking drag/resize/edges/notes, `nodeTypes` inside render, disconnected log panel. | Memoized nodes, hoisted `nodeTypes`, Dagre `TB/LR`, predictive `setCenter(x, y)`, Windows `/` path clean. |
 
-### `As-Is` Anti-Pattern (Dead Ends & Competing Navs)
 ```mermaid
 flowchart LR
-  Entry["Landing Shell (As-Is)"] -->|"4 Competing Navs"| Clutter["Squeezed Tabs (>6 items)"]
-  Entry -->|"width Transition"| Jitter["Layout Reflow + Orphan Modal"]
-  Jitter -->|"Silent Error"| DeadEnd["Stuck Loading State"]
-```
-
-### `To-Be` Clean Adaptive Single-DOM Pattern
-```mermaid
-flowchart LR
-  AppShell["Adaptive Single-DOM AppShell"] --> Rail["Collapsible Rail (<=6 items/nav)"]
-  Rail -->|"Mobile <600px"| BottomBar["Bottom Bar + Native Sheet"]
-  Rail -->|"Desktop >=840px"| SplitPane["Main Pane + Supporting Drawer"]
+  AppShell["Adaptive Single-DOM AppShell + GPU .skip-link"] --> Rail["Collapsible Rail (<=6 items/nav, tooltips)"]
+  Rail -->|"Mobile <600px"| BottomBar["Bottom Bar (48x48px) + Native Sheet"]
+  Rail -->|"Desktop >=840px"| SplitPane["Main Pane + Supporting Drawer (setCenter sync)"]
   SplitPane -->|"FSM Gate"| StateOut{"idle | loading | empty | error | success"}
   StateOut -->|"error"| Recover["Inline Retry + Focus Restore"]
   StateOut -->|"success"| Confirm["Updated View + Tab Order Intact"]

@@ -81,7 +81,7 @@ PURE_BLACK_RE = re.compile(
 EMOJI_RE = re.compile(r"[\U0001F300-\U0001FAFF\U000026A0-\U000026FF\U00002702-\U00002712\U00002728-\U000027B0]")
 ROW_REVERSE_RE = re.compile(
     r"(?<![a-zA-Z0-9_-])(?:flex-direction\s*:\s*row-reverse|flexDirection\s*:\s*['\"]row-reverse['\"]"
-    r"|flex-row-reverse|order\s*:\s*-?[1-9]\d*|order-[1-9]\d*)(?![a-zA-Z0-9_-])"
+    r"|flex-row-reverse|order\s*:\s*-?[1-9]\d*|order-[1-9]\d*|grid-auto-flow\s*:\s*(?:(?:row|column)\s+)?dense|grid-flow-(?:row-|col-)?dense)(?![a-zA-Z0-9_-])"
 )
 FLAT_SHADOW_RE = re.compile(
     r"box-shadow\s*:\s*0(?:px)?\s+\d+px\s+\d+px\s+rgba?\(\s*0\s*,\s*0\s*,\s*0[^,;{}]*\)\s*(?:;|})"
@@ -100,7 +100,7 @@ SLOP_BLOB_RE = re.compile(
     r"|(?<![a-zA-Z0-9_-])(?:animate-blob|blur-3xl)(?![a-zA-Z0-9_-])"
     r"|(?<![a-zA-Z0-9_-])blur-2xl(?![a-zA-Z0-9_-])(?=[^\"'>]*\b(?:rounded-full|bg-gradient-to|pointer-events-none|opacity-))"
     r"|border-radius\s*:\s*\d+%\s+\d+%\s+\d+%\s+\d+%\s*/\s*\d+%"
-    r"|<feGaussianBlur[\s\S]{0,240}<feColorMatrix",
+    r"|<feGaussianBlur(?:(?!</filter>)[\s\S]){0,240}<feColorMatrix",
     re.IGNORECASE,
 )
 SLOP_TOKEN_RE = re.compile(

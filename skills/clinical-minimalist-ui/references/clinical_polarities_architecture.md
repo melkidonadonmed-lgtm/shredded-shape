@@ -65,3 +65,7 @@ export function RenalClearanceWidget() {
 }
 ```
 - **Print Rule:** Always test the `.sus-grid` sheet with `ui_judge_gatekeeper.py <target> --wcag AAA --composite --json` prior to handoff.
+
+## 4. 3-Layer Clinical Navigation, Silent Breadcrumbs & Anti-Slop Sterility
+- **3 Complementary Nav Layers:** (1) Global (Collapsible Rail `>= 840px`, `48x48px` Bottom Bar `< 600px`), (2) In-Page Contextual ToC, and (3) Silent Breadcrumbs (`<ol role="list">` with `aria-current="page"` and CSS `li + li::before { content: "/"; }` — never raw `/` in HTML so screen readers stay silent).
+- **Landmark Clarity & Ergonomics:** Assign unique `<nav aria-label>` without repeating `"navigation"`, include a GPU `.skip-link` (`transform`) to `<main id="main-content" tabindex="-1">`, preserve `DOM == Tab Order` (zero `order`/`row-reverse`/`grid-auto-flow: dense`), and ban decorative side-stripes, gradient text, mystery icon-only nav, and `01/02/03` decorative counters on clinical chrome.

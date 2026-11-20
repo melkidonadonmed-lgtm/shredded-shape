@@ -77,7 +77,8 @@ ELEVATION_MARKERS = (
     "--elevation-1", "--elevation-2", "--elevation-3", "--elevation-low",
     "--elevation-medium", "--elevation-high", "--elevation-pressed-inset",
     "--catch-light", "--shadow-sculpted", "--rim-light", "--shadow-card",
-    "--shadow-1", "sculpted-card", "card-interactive", "ui-card-soft",
+    "--shadow-1", "shadow-elevation-1", "shadow-elevation-2", "shadow-elevation-3",
+    "sculpted-card", "card-interactive", "ui-card-soft",
     "bento-card", "inset 0 1px 0", "inset 0px 1px 0px",
 )
 
