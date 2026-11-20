@@ -25,3 +25,21 @@ Keep workflow routing separate from visual spatial selection:
 | **High-Risk Critical / Irreversible** | Clinical calculator formulas/bounds, auth/RBAC rules, destructive deletes, secret/env boundaries, billing side effects | **Pause (HITL Gate):** ask **1–3 surgical questions** resolving the exact gap before compiling worker mutations. |
 
 - **3 Delivery Modes:** `Direct Execution` (low-risk, pre-authorized), `Blueprint / Prompt Spec` (single clean Markdown `DESIGN.md` + DAG JSON), `Phased Plan` (ordered phases + **Phase 0 Scope Lock** requiring confirmation before destructive refactors and defining exact `stop_condition`).
+
+## 5. Plan Mode Read-Only Tool Allowlist & Minimum Pre-Execution Checklist
+
+Keep `ui-brand-ux-planner` strictly read-only until the blueprint/DAG is approved; select the allowlist by UI request type:
+
+| UI Request Type | Allowed Read-Only Tools (Plan Mode Allowlist) | Blocked Until Worker Stage |
+| :--- | :--- | :--- |
+| **`greenfield` (New UI / Landing / SaaS)** | `read_file`, `modern-web-guidance`, `stitch`/`figma` read-only, `ask_question` (`<= 3`) | `write_file`, `edit_file`, `DESIGN.md` writes, `npm/vite` builds |
+| **`refactor` / `planner_directed` (Existing App)** | `read_file`, `rg`, `git status`/`diff`, `chrome-devtools` snapshot/screenshot, `frontend_inventory_and_slop_scanner.py`, `ui_dag_compiler.py --json` | Any CSS/TSX/HTML mutation, package installs, destructive deletes |
+| **`audit_only` (Review / Scorecard)** | Read-only DevTools + AST + `ui_judge_gatekeeper.py` / `artifact_axis_judge.py` | All write tools (zero mutations) |
+
+### Minimum 6-Item Pre-Execution Checklist (Mandatory Before Hand-Off to `ui-worker`)
+- [ ] **1. Read-Only Isolation:** Zero source files or `DESIGN.md` were mutated during planning.
+- [ ] **2. Direction Brief & Non-Goals:** 5-line Direction (`Product / Character / World / Moments / Signature`), 1 Style + 1 Spatial Archetype, and explicit **Non-Goals** (e.g., preserve A4 `#FFFFFF` print sheet or clinical logic).
+- [ ] **3. Verified Target Files & Routes:** Existing routes, tokens, and target `owned_files` were inspected on disk (or explicitly marked `greenfield`).
+- [ ] **4. Tool Allowlist Declared:** Required implementation/verification tools (`modern-web-guidance`, `verify_raw_frontend.py --run-tsc`, `ui_judge_gatekeeper.py`, `stitch-canvas` if needed) are listed per stage.
+- [ ] **5. Complexity Cap (`<= 5` rules/node):** Disjoint `owned_files` per worker, `max_discovery_hops <= 1`, and `max_self_refine_rounds <= 3`.
+- [ ] **6. Measurable Acceptance & HITL Gate:** Target WCAG 2.2 AA/AAA, `ai_slop_score == 0`, SHA-256 RAW verification, and HITL pause for clinical/auth/destructive changes.
